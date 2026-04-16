@@ -1,0 +1,45 @@
+{
+  "name": "nutricalc",
+  "version": "4.0.0",
+  "description": "Nutricalc — Formulação de Dietas na Nutrição Animal",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "npm run setup-sqlite:win && electron-builder --win",
+    "dist:linux": "npm run setup-sqlite:linux && electron-builder --linux",
+    "setup-sqlite:win": "cd node_modules/better-sqlite3 && npx prebuild-install --runtime electron --target 41.2.1 --arch x64 --platform win32 --force",
+    "setup-sqlite:linux": "cd node_modules/better-sqlite3 && npx prebuild-install --runtime electron --target 41.2.1 --arch x64 --platform linux --force"
+  },
+  "author": "José Carlos Arevalo Júnior",
+  "repository": "bicomv/nutricalc-app",
+  "build": {
+    "publish": [
+      "github"
+    ],
+    "npmRebuild": false,
+    "appId": "br.nutricalc",
+    "productName": "Nutricalc",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^41.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.2.0",
+    "electron-updater": "^6.8.3"
+  }
+}

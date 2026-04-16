@@ -1,0 +1,7 @@
+cd nutricalc-app
+npm install
+npx electron-rebuild
+npm start              # para testar
+
+npm run dist:linux     # gera .AppImage em release/
+npm run dist:win       # gera .exe em release/

@@ -1,0 +1,6 @@
+node_modules/
+release/
+dist/
+*.db
+*.db-journal
+*.db-wal
