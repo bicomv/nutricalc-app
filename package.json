@@ -1,6 +1,6 @@
 {
   "name": "nutricalc",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "description": "Nutricalc — Formulação de Dietas na Nutrição Animal",
   "main": "src/main.js",
   "scripts": {

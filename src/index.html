@@ -40,8 +40,8 @@ border-radius:14px;padding:20px 14px;cursor:pointer;transition:all .25s;text-ali
 .tabs{padding:6px 14px;background:var(--c2);border-bottom:1px solid var(--c3);display:flex;gap:3px;overflow-x:auto;flex-shrink:0;scrollbar-width:thin;}
 .tab{padding:6px 11px;background:0;color:var(--c6);border:1.5px solid transparent;border-radius:7px;cursor:pointer;font-family:var(--ff);font-weight:500;font-size:11px;display:flex;align-items:center;gap:4px;transition:.15s;white-space:nowrap;}
 .tab:hover{background:var(--c0);}.tab.on{background:var(--p);color:var(--wh);border-color:var(--p3);font-weight:700;}
-.main{flex:1;overflow-y:auto;padding:16px;width:100%;margin:0 auto;}
-.pn{display:none;animation:fi .2s ease;}.pn.on{display:block;}
+.main{flex:1;overflow-y:auto;padding:16px;width:100%;margin:0 auto;display:flex;flex-direction:column;}
+.pn{display:none;animation:fi .2s ease;flex:1;flex-direction:column;}.pn.on{display:flex;}
 @keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 
 /* CARDS */
@@ -55,7 +55,7 @@ h3.ss{color:var(--p);font-size:12px;font-weight:700;margin-bottom:8px;}
 /* INPUTS */
 input[type="text"],input[type="number"],select{padding:6px 8px;border:1.5px solid var(--c4);border-radius:6px;font-family:var(--fm);font-size:11px;background:var(--c0);color:var(--tx);outline:none;transition:border .15s;}
 input:focus,select:focus{border-color:var(--p3);box-shadow:0 0 0 2px rgba(34,134,58,.12);}
-.ism{width:68px;text-align:center;}.imd{width:130px;}.ilg{width:100%;}
+.ism{width:82px;text-align:center;}.imd{width:130px;}.ilg{width:100%;}
 
 /* BUTTONS */
 .btn{padding:6px 14px;border:none;border-radius:7px;cursor:pointer;font-family:var(--ff);font-weight:700;font-size:11px;transition:.15s;display:inline-flex;align-items:center;gap:5px;}
@@ -68,10 +68,11 @@ input:focus,select:focus{border-color:var(--p3);box-shadow:0 0 0 2px rgba(34,134
 .b-open:hover{background:#2563eb;}
 
 /* TABLE */
-.tw{overflow-x:auto;}
-table{width:100%;border-collapse:collapse;min-width:550px;}
-th{background:var(--p);color:var(--wh);font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.04em;padding:7px 4px;font-family:var(--fm);text-align:center;white-space:nowrap;}
-th:first-child{text-align:left;padding-left:10px;}
+.tw{overflow-x:auto;overflow-y:auto;max-height:65vh;border:1px solid var(--c3);border-radius:6px;}
+table{width:100%;border-collapse:separate;border-spacing:0;min-width:550px;}
+th{background:var(--p);color:var(--wh);font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.04em;padding:7px 4px;font-family:var(--fm);text-align:center;white-space:nowrap;position:sticky;top:0;z-index:10;box-shadow:inset 0 -1px 0 var(--p3);}
+th:first-child{text-align:left;padding-left:10px;border-top-left-radius:5px;}
+th:last-child{border-top-right-radius:5px;}
 td{padding:5px 4px;border-bottom:1px solid var(--c3);font-size:11px;text-align:center;font-family:var(--fm);}
 td:first-child{text-align:left;padding-left:10px;}
 tr:nth-child(even){background:var(--c0);}tr:nth-child(odd){background:var(--c2);}
@@ -101,7 +102,7 @@ tr:nth-child(even){background:var(--c0);}tr:nth-child(odd){background:var(--c2);
 .sr{display:flex;align-items:center;gap:7px;margin-bottom:5px;padding:5px 8px;background:var(--c2);border-radius:7px;border:1px solid var(--c3);}
 .sr .nm{font-weight:600;font-size:11px;min-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .sr input[type="range"]{flex:1;accent-color:var(--p);min-width:60px;}
-.sr input[type="number"]{width:56px;text-align:center;}.sr .u{font-size:10px;color:var(--c5);width:14px;}
+.sr input[type="number"]{width:82px;text-align:center;}.sr .u{font-size:10px;color:var(--c5);width:14px;}
 .sb{margin-top:5px;padding:5px 10px;border-radius:7px;font-size:11px;font-weight:600;}
 .sb-ok{background:var(--p7);color:var(--p);}.sb-w{background:var(--ybg);color:var(--ytx);}
 
@@ -187,8 +188,8 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
     <img class="hdr-i" id="hI" alt="" style="height:40px;vertical-align:middle;margin-right:6px"><h1>Nutricalc</h1><span class="bdg" id="hB">—</span>
     <div class="hdr-r">
       <button class="btn bs" onclick="exportJSON()">📤 Exportar</button>
-      <button class="btn bs" onclick="importJSON()">📥 Importar</button>
-      
+      <button class="btn bs" onclick="onImportJSON()">📥 Importar</button>
+      <input type="file" id="jsonFileInput" accept=".json,application/json" style="display:none" onchange="importJSON(event)">
       <button class="btn bs" onclick="goHome()">🏠</button>
     </div>
   </div>
@@ -201,6 +202,7 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
     <button class="tab" data-t="teMS">✏️ T&E (MS)</button>
     <button class="tab" data-t="teMN">✏️ T&E (MN)</button>
     <button class="tab" data-t="res">📊 Resultados</button>
+    <button class="tab" data-t="prc">💰 Ajuste Preço</button>
     <button class="tab" data-t="diets">💾 Dietas</button>
   </div>
   <div class="main">
@@ -211,6 +213,7 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
     <div id="p-opt" class="pn"></div>
     <div id="p-teMS" class="pn"></div>
     <div id="p-teMN" class="pn"></div>
+    <div id="p-prc" class="pn"></div>
     <div id="p-res" class="pn"></div>
     <div id="p-diets" class="pn"></div>
   </div>
@@ -224,6 +227,8 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
 const $=id=>document.getElementById(id);
 function fmt(v,d=2){if(v==null||isNaN(v))return'0,00';return Number(v).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});}
 function n2(v){return fmt(v,2);}
+function num(v){const s=String(v||'').trim().replace(',','.');const n=Number(s);return isNaN(n)?0:n;}
+function onImportJSON(){if(typeof HAS_API!=='undefined' && HAS_API && typeof importJSON==='function'){importJSON();return;}const input=$('jsonFileInput');if(input)input.click();}
 function openMod(h){$('mC').innerHTML=h;$('mOv').classList.remove('hid');}
 function closeMod(){$('mOv').classList.add('hid');}
 
@@ -244,7 +249,7 @@ function nConfirm(msg) {
     window._ncResolve = resolve;
   });
 }
-function badge(v,mn,mx){const okMn=mn==null||mn<=0||v>=mn;const okMx=mx==null||mx>=9999||v<=mx;return(okMn&&okMx)?'<span class="bg bg-ok">OK</span>':'<span class="bg bg-e">FORA</span>';}
+function badge(v,mn,mx){const val=Math.round(num(v)*100)/100;const okMn=mn==null||mn<=0||val>=mn;const okMx=mx==null||mx>=9999||val<=mx;return(okMn&&okMx)?'<span class="bg bg-ok">OK</span>':'<span class="bg bg-e">FORA</span>';}
 
 // ══════════ RUMINANT BASE NUTRIENTS ══════════
 const RNUT=[
@@ -463,12 +468,12 @@ function updFt(){const ft=document.querySelector('.ft');if(!ft)return;if(S.unsav
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));document.querySelectorAll('.pn').forEach(x=>x.classList.remove('on'));
   b.classList.add('on');$('p-'+b.dataset.t).classList.add('on');
-  ({info:rInfo,feeds:rFeeds,nuts:rNuts,reqs:rReqs,opt:rOpt,teMS:rTeMS,teMN:rTeMN,res:rRes,diets:rDiets})[b.dataset.t]?.();}));
+  ({info:rInfo,feeds:rFeeds,nuts:rNuts,reqs:rReqs,opt:rOpt,teMS:rTeMS,teMN:rTeMN,res:rRes,prc:rPrc,diets:rDiets})[b.dataset.t]?.();}));
 function goTab(t){document.querySelectorAll('.tab').forEach(b=>{b.classList.toggle('on',b.dataset.t===t);});document.querySelectorAll('.pn').forEach(p=>{p.classList.toggle('on',p.id==='p-'+t);});}
 
 // ══════════ FEEDS ══════════
 function rFeeds(){const q=S.search.toLowerCase();const fl=S.feeds.filter(f=>f.name.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));const nk=ank();
-let h=`<div class="fb mb10"><h2 class="st" style="margin:0">Alimentos</h2><div class="fg"><input type="text" placeholder="🔍 Buscar (Enter p/ filtrar)..." class="imd" value="${S.search}" onchange="S.search=this.value;rFeeds()" onkeydown="if(event.key==='Enter'){S.search=this.value;rFeeds();}"><button class="btn bp" onclick="modAddFeed()">+ Adicionar</button><button class="btn bs" onclick="S.sel=[];rFeeds()">Limpar Seleção</button></div></div>`;
+let h=`<div class="fb mb10"><h2 class="st" style="margin:0">Alimentos</h2><div class="fg"><input type="text" placeholder="🔍 Buscar (Enter p/ filtrar)..." class="imd" value="${S.search}" onchange="S.search=this.value;rFeeds()" onkeydown="if(event.key==='Enter'){S.search=this.value;rFeeds();}"><button class="btn bp" onclick="modAddFeed()">+ Adicionar</button><button class="btn bs" onclick="S.sel=[];rFeeds()">Limpar Seleção</button><button class="btn bs" onclick="S.sel=[...new Set([...S.sel, ...fl.map(f=>f.id)])];rFeeds()">Selecionar Todos</button></div></div>`;
 h+=`<div class="cd" style="padding:0"><div class="tw"><table><thead><tr><th>✓</th><th>Alimento</th><th>Tipo</th>`;nk.forEach(k=>h+=`<th>${k.toUpperCase()}</th>`);h+=`<th>R$/kg</th><th></th></tr></thead><tbody>`;
 fl.forEach(f=>{const ck=S.sel.includes(f.id)?'checked':'';
   h+=`<tr><td><input type="checkbox" ${ck} onchange="tglSel(${f.id})"></td>`;
@@ -476,7 +481,7 @@ fl.forEach(f=>{const ck=S.sel.includes(f.id)?'checked':'';
   h+=`<td><button class="bi" onclick="modEditFeed(${f.id})">✏️</button><button class="bi" onclick="delFeed(${f.id})">🗑️</button></td></tr>`;});
 h+=`</tbody></table></div></div><p class="tm mt6">✅ ${S.sel.length} selecionados</p>`;$('p-feeds').innerHTML=h;}
 function tglSel(id){const i=S.sel.indexOf(id);if(i>=0)S.sel.splice(i,1);else S.sel.push(id);rFeeds();}
-function upF(id,k,v){const f=S.feeds.find(x=>x.id===id);if(f){f[k]=k==='name'?v:parseFloat(v)||0;}}
+function upF(id,k,v){const f=S.feeds.find(x=>x.id===id);if(f){f[k]=k==='name'?v:num(v)||0;}}
 async function delFeed(id){
   const f=S.feeds.find(x=>x.id===id);if(!f)return;
   const ok=typeof nConfirm==='function'?await nConfirm('Excluir "'+f.name+'"?'):confirm('Excluir?');
@@ -493,8 +498,8 @@ async function delFeed(id){
 }
 function modAddFeed(){let h=`<h3>Novo Alimento</h3><div class="ga"><div style="grid-column:1/-1"><label class="tl">Nome</label><input type="text" id="nf_n" class="ilg" placeholder="Ex: Soja (farelo)"></div><div style="grid-column:1/-1"><label class="tl">Tipo</label><select id="nf_tipo" class="ilg"><option value="">— selecione —</option><option value="Volumoso">Volumoso</option><option value="Concentrado">Concentrado</option><option value="Mineral">Mineral</option></select></div>`;ank().forEach(k=>{const n=S.nuts.find(x=>x.key===k);h+=`<div><label class="tl">${n?n.label:k}</label><input type="number" id="nf_${k}" value="0" step="0.01" class="ilg"></div>`;});h+=`<div><label class="tl">R$/kg MN</label><input type="number" id="nf_c" value="0" step="0.01" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doAddFeed()">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`;openMod(h);}
 function modEditFeed(id){const f=S.feeds.find(x=>x.id===id);if(!f)return;let h=`<h3>Editar: ${f.name}</h3><div class="ga"><div style="grid-column:1/-1"><label class="tl">Nome</label><input type="text" id="ef_n" class="ilg" value="${f.name||''}"></div><div style="grid-column:1/-1"><label class="tl">Tipo</label><select id="ef_tipo" class="ilg"><option value="">— selecione —</option><option value="Volumoso"${f.tipo==='Volumoso'?' selected':''}>Volumoso</option><option value="Concentrado"${f.tipo==='Concentrado'?' selected':''}>Concentrado</option><option value="Mineral"${f.tipo==='Mineral'?' selected':''}>Mineral</option></select></div>`;ank().forEach(k=>{const n=S.nuts.find(x=>x.key===k);h+=`<div><label class="tl">${n?n.label:k}</label><input type="number" id="ef_${k}" value="${f[k]||0}" step="0.01" class="ilg"></div>`;});h+=`<div><label class="tl">R$/kg MN</label><input type="number" id="ef_c" value="${f.custoKg||0}" step="0.01" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doEditFeed(${id})">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`;openMod(h);}
-function doEditFeed(id){const f=S.feeds.find(x=>x.id===id);if(!f)return;const nm=$('ef_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');f.name=nm;f.tipo=$('ef_tipo').value;f.custoKg=parseFloat($('ef_c').value)||0;ank().forEach(k=>{f[k]=parseFloat($('ef_'+k).value)||0;});closeMod();rFeeds();}
-function doAddFeed(){const nm=$('nf_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');const f={id:S.nxId++,name:nm,tipo:$('nf_tipo').value||'',custoKg:parseFloat($('nf_c').value)||0};ank().forEach(k=>{f[k]=parseFloat($('nf_'+k).value)||0;});S.feeds.push(f);closeMod();rFeeds();}
+function doEditFeed(id){const f=S.feeds.find(x=>x.id===id);if(!f)return;const nm=$('ef_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');f.name=nm;f.tipo=$('ef_tipo').value;f.custoKg=num($('ef_c').value)||0;ank().forEach(k=>{f[k]=num($('ef_'+k).value)||0;});closeMod();rFeeds();}
+function doAddFeed(){const nm=$('nf_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');const f={id:S.nxId++,name:nm,tipo:$('nf_tipo').value||'',custoKg:num($('nf_c').value)||0};ank().forEach(k=>{f[k]=num($('nf_'+k).value)||0;});S.feeds.push(f);closeMod();rFeeds();}
 
 // ══════════ NUTRIENTS ══════════
 function tglNut(k){const n=S.nuts.find(x=>x.key===k);if(!n)return;n.enabled=!n.enabled;if(!n.enabled)delete S.req.n[k];else if(!S.req.n[k])S.req.n[k]={min:0,max:9999};rNuts();if($('p-reqs'))rReqs();}
@@ -506,9 +511,9 @@ async function delNut(k){if(k.toUpperCase()==='MS')return nAlert('MS não pode s
 
 // ══════════ REQUIREMENTS ══════════
 function rReqs(){const keys=rkf();let h=`<h2 class="st">Exigências Nutricionais</h2><div class="cd"><div class="fb"><div><label class="tl">Perfil</label><select id="pS" onchange="applyPre()" style="min-width:240px;padding:6px;font-size:11px;font-family:var(--ff)">`;Object.keys(S.presets).forEach(k=>{h+=`<option value="${k}" ${k===S.aPre?'selected':''}>${k}</option>`;});h+=`<option value="__c">— Personalizado —</option></select></div><div class="fg"><button class="btn bs" onclick="modAddPre()">+ Novo</button><button class="btn bs" onclick="modEditPre()">✏️</button><button class="btn bd" onclick="delPre()">🗑️</button></div></div></div>`;
-h+=`<div class="cd"><h3 class="ss">CMS</h3><div class="fc"><label style="font-size:11px;font-weight:600">kg MS/dia:</label><input type="number" step="0.1" value="${S.req.cms}" class="ism" onchange="S.req.cms=parseFloat(this.value)||0"></div></div>`;
+h+=`<div class="cd"><h3 class="ss">CMS</h3><div class="fc"><label style="font-size:11px;font-weight:600">kg MS/dia:</label><input type="number" step="0.1" value="${S.req.cms}" class="ism" onchange="S.req.cms=num(this.value)||0"></div></div>`;
 h+=`<div class="cd"><h3 class="ss">Limites Nutricionais</h3><div class="gr">`;
-keys.forEach(k=>{const n=S.nuts.find(x=>x.key===k);const r=S.req.n[k]||{min:0,max:9999};h+=`<div class="rb"><div class="rh"><label>${n?n.desc+' ('+n.unit+')':k}</label><button class="b-open" onclick="S.req.n['${k}']={min:0,max:9999};rReqs();">EM ABERTO</button></div><div class="rr"><div><span>Mín</span><br><input type="number" step="0.01" value="${r.min}" class="ism" onchange="S.req.n['${k}'].min=parseFloat(this.value)||0"></div><div><span>Máx</span><br><input type="number" step="0.01" value="${r.max}" class="ism" onchange="S.req.n['${k}'].max=parseFloat(this.value)||0"></div></div></div>`;});
+keys.forEach(k=>{const n=S.nuts.find(x=>x.key===k);const r=S.req.n[k]||{min:0,max:9999};h+=`<div class="rb"><div class="rh"><label>${n?n.desc+' ('+n.unit+')':k}</label><button class="b-open" onclick="S.req.n['${k}']={min:0,max:9999};rReqs();">EM ABERTO</button></div><div class="rr"><div><span>Mín</span><br><input type="number" step="0.01" value="${r.min}" class="ism" onchange="S.req.n['${k}'].min=num(this.value)||0"></div><div><span>Máx</span><br><input type="number" step="0.01" value="${r.max}" class="ism" onchange="S.req.n['${k}'].max=num(this.value)||0"></div></div></div>`;});
 h+=`</div></div>`;$('p-reqs').innerHTML=h;}
 function applyPre(){const s=$('pS').value;if(s==='__c'){S.aPre='';return;}const p=S.presets[s];if(!p)return;S.aPre=s;S.req={cms:p.cms,n:JSON.parse(JSON.stringify(p.n))};S.nuts.forEach(n=>{if(n.key.toUpperCase()!=='MS'&&n.key.toUpperCase()!=='MM'&&p.n&&p.n[n.key])n.enabled=true;});rkf().forEach(k=>{if(!S.req.n[k])S.req.n[k]={min:0,max:9999};});rReqs();}
 function modAddPre(){openMod(`<h3>Novo Perfil</h3><div><label class="tl">Nome</label><input type="text" id="np_n" class="ilg"></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doAddPre()">Criar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`);}
@@ -525,7 +530,7 @@ if(viols.length){h+=`<div class="warn"><strong>⚠️ Atenção — impossível 
 h+=`<div class="cd"><h3 class="ss">Restrições por Ingrediente</h3><div class="tw"><table><thead><tr><th>Alimento</th><th>R$/kg MS</th><th>Mín %</th><th>Máx %</th></tr></thead><tbody>`;
 fl.forEach(f=>{const c=S.fc[f.id]||{};h+=`<tr><td class="tn">${f.name}</td><td class="tb2">R$ ${n2(f.custoKg/(f.ms/100))}</td><td><input type="number" class="ism" step="1" placeholder="0" value="${c.mi!=null?c.mi:''}" onchange="setFC(${f.id},'mi',this.value)"></td><td><input type="number" class="ism" step="1" placeholder="100" value="${c.mx!=null?c.mx:''}" onchange="setFC(${f.id},'mx',this.value)"></td></tr>`;});
 h+=`</tbody></table></div></div><div class="tc mt10"><button class="btn bp blg" id="btnO" onclick="doOpt()">🚀 Calcular</button></div>`;$('p-opt').innerHTML=h;}
-function setFC(id,k,v){if(!S.fc[id])S.fc[id]={};const val=parseFloat(v);if(isNaN(val))delete S.fc[id][k];else S.fc[id][k]=val;}
+function setFC(id,k,v){if(!S.fc[id])S.fc[id]={};if(String(v||'').trim()===''){delete S.fc[id][k];return;}S.fc[id][k]=num(v);}
 
 function doOpt(){$('btnO').disabled=true;$('btnO').textContent='⏳ Otimizando...';setTimeout(()=>{
 const fl=selfn().map(f=>({...f,...(S.fc[f.id]||{})}));const result=solve(fl,S.req);
@@ -585,14 +590,28 @@ let h=`<h2 class="st" style="margin-bottom:2px">Tentativa e Erro — Matéria Se
 if(!fl.length){$('p-teMS').innerHTML=h+`<div class="cd es"><div class="ic">📦</div>Nenhum alimento selecionado.</div>`;return;}
 if(!Object.keys(S.mMS).length&&fl.length){S.mMS[fl[0].id]=100;}
 h+=`<div class="cd"><h3 class="ss">Proporções (%MS)</h3>`;
-fl.forEach(f=>{const v=S.mMS[f.id]||0;const cMS=f.custoKg/(f.ms/100);h+=`<div class="sr"><span class="nm">${f.name} <span style="font-size:9px;color:var(--c5)">(R$ ${cMS.toFixed(2)}/kg MS)</span></span><input type="range" min="0" max="100" step="0.5" value="${v}" oninput="adjMS(${f.id},this.value)" data-ms="${f.id}"><input type="number" step="0.1" min="0" max="100" value="${v}" class="ism" onchange="adjMS(${f.id},this.value)"><span class="u">%</span></div>`;});
+fl.forEach(f=>{const v=S.mMS[f.id]||0;const cMS=f.custoKg/(f.ms/100);h+=`<div class="sr"><span class="nm">${f.name} <span style="font-size:9px;color:var(--c5)">(R$ ${cMS.toFixed(2)}/kg MS)</span></span><input type="range" min="0" max="100" step="0.1" value="${v}" oninput="adjMS(${f.id},this.value)" data-ms="${f.id}"><input type="number" step="0.01" min="0" max="100" value="${v}" class="ism" onchange="adjMS(${f.id},this.value)"><span class="u">%</span></div>`;});
 h+=`<div id="msSB"></div></div><div id="msR"></div>`;$('p-teMS').innerHTML=h;updMSR();}
-function adjMS(id,val){const fl=selfn();const nv=Math.max(0,Math.min(100,parseFloat(val)||0));const old=S.mMS[id]||0;const diff=nv-old;S.mMS[id]=nv;
+function adjMS(id,val){const fl=selfn();const nv=Math.max(0,Math.min(100,num(val)||0));const old=S.mMS[id]||0;const diff=nv-old;S.mMS[id]=nv;
 const others=fl.filter(f=>f.id!==id);const oSum=others.reduce((s,f)=>s+(S.mMS[f.id]||0),0);
 if(oSum>0&&diff!==0){others.forEach(f=>{const ov=S.mMS[f.id]||0;S.mMS[f.id]=Math.max(0,ov-diff*(ov/oSum));});}
 const total=fl.reduce((s,f)=>s+(S.mMS[f.id]||0),0);
 if(total>100.05){const ex=total-100;const os2=fl.filter(f=>f.id!==id).reduce((s,f)=>s+(S.mMS[f.id]||0),0);if(os2>0)fl.filter(f=>f.id!==id).forEach(f=>{S.mMS[f.id]=Math.max(0,(S.mMS[f.id]||0)-ex*((S.mMS[f.id]||0)/os2));});}
-fl.forEach(f=>{const sl=document.querySelector(`[data-ms="${f.id}"]`);if(sl){sl.value=S.mMS[f.id]||0;sl.nextElementSibling.value=(S.mMS[f.id]||0).toFixed(1);}});updMSR();}
+fl.forEach(f=>{const sl=document.querySelector(`[data-ms="${f.id}"]`);if(sl){sl.value=S.mMS[f.id]||0;sl.nextElementSibling.value=(S.mMS[f.id]||0).toFixed(2);}});updMSR();}
+
+// ══════════ PRICE ADJUSTMENT ══════════
+function rPrc(){const fl=selfn().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+let h=`<h2 class="st">Ajuste de Preços</h2><p class="tm mb10">Altere o preço dos ingredientes selecionados para simular mudanças de custo.</p>`;
+if(!fl.length){$('p-prc').innerHTML=h+`<div class="cd es"><div class="ic">💰</div>Nenhum alimento selecionado.</div>`;return;}
+h+=`<div class="cd"><div class="tw"><table><thead><tr><th>Alimento</th><th>Tipo</th><th>R$/kg MN</th><th>R$/kg MS</th></tr></thead><tbody>`;
+fl.forEach(f=>{
+  const cMS=f.custoKg/(f.ms/100);
+  h+=`<tr><td class="tn">${f.name}</td><td>${f.tipo||''}</td>
+  <td><input type="number" step="0.01" class="ism" value="${f.custoKg}" onchange="upF(${f.id},'custoKg',this.value);rPrc()"></td>
+  <td>R$ ${n2(cMS)}</td></tr>`;
+});
+h+=`</tbody></table></div></div><div class="tc mt10"><button class="btn bp" onclick="goTab('opt');rOpt()">Ir para Formulação</button></div>`;
+$('p-prc').innerHTML=h;}
 function updMSR(){const fl=selfn();const props=fl.map(f=>(S.mMS[f.id]||0)/100);const sum=props.reduce((a,b)=>a+b,0);
 const sb=$('msSB');if(sb)sb.innerHTML=`<div class="sb ${Math.abs(sum-1)<.01?'sb-ok':'sb-w'}">Soma: ${fmt(sum*100,1)}%${Math.abs(sum-1)>.01?' — normalizado para 100%':''}</div>`;
 const ar=$('msR');if(!ar||sum<.01){if(ar)ar.innerHTML='';return;}ar.innerHTML=buildEval(fl,props.map(p=>p/sum),'msR');}
@@ -603,7 +622,7 @@ let h=`<h2 class="st" style="margin-bottom:2px">Tentativa e Erro — Matéria Na
 if(!fl.length){$('p-teMN').innerHTML=h+`<div class="cd es"><div class="ic">📦</div>Nenhum alimento selecionado.</div>`;return;}
 h+=`<div class="te-grid">`;
 h+=`<div class="cd"><h3 class="ss">Quantidade (kg MN/dia)</h3>`;
-fl.forEach(f=>{const v=S.mMN[f.id]||0;const cMS=f.custoKg/(f.ms/100);h+=`<div class="sr"><span class="nm">${f.name} <span style="font-size:9px;color:var(--c5)">(R$ ${cMS.toFixed(2)}/kg MS)</span></span><input type="number" step="0.1" min="0" value="${v}" style="width:70px;text-align:center" onchange="S.mMN[${f.id}]=parseFloat(this.value)||0;updMNR()"><span class="u">kg</span></div>`;});
+fl.forEach(f=>{const v=S.mMN[f.id]||0;const cMS=f.custoKg/(f.ms/100);h+=`<div class="sr"><span class="nm">${f.name} <span style="font-size:9px;color:var(--c5)">(R$ ${cMS.toFixed(2)}/kg MS)</span></span><input type="number" step="0.01" min="0" value="${v}" style="width:82px;text-align:center" onchange="S.mMN[${f.id}]=parseFloat(this.value)||0;updMNR()"><span class="u">kg</span></div>`;});
 h+=`<div id="mnSB"></div></div><div id="mnR"></div>`;
 h+=`</div>`;
 $('p-teMN').innerHTML=h;updMNR();}
@@ -627,13 +646,13 @@ h+=`<div class="cgl"><div class="cg"><div class="ci"><div class="lb" style="colo
 h+=`<div class="cd"><h3 class="ss">Composição da Dieta</h3><div class="tw"><table><thead><tr><th>Alimento</th><th>% MS</th><th>kg MS/dia</th><th>R$/kg MS</th><th>kg MN/dia</th><th>R$/kg MN</th><th>R$/dia</th></tr></thead><tbody>`;
 const colors=["#14532d","#166534","#22863a","#4ade80","#86efac","#15803d","#a3e635","#475569","#ea580c","#f59e0b"];
 let tPct=0,tKgMS=0,tKgMN=0,tCost=0;
-fl.forEach((f,i)=>{const p=norm[i];if(p<.001)return;const kms=p*(S.req.cms||10);const kmn=kms/(f.ms/100);const cst=kmn*f.custoKg;const cMS=f.custoKg/(f.ms/100);
+fl.forEach((f,i)=>{const p=norm[i];if(p<.00001)return;const kms=p*(S.req.cms||10);const kmn=kms/(f.ms/100);const cst=kmn*f.custoKg;const cMS=f.custoKg/(f.ms/100);
 tPct+=p*100;tKgMS+=kms;tKgMN+=kmn;tCost+=cst;
 h+=`<tr><td class="tn">${f.name}</td><td class="tb2">${fmt(p*100,1)}%</td><td>${fmt(kms,3)}</td><td>R$ ${n2(cMS)}</td><td>${fmt(kmn,3)}</td><td>R$ ${n2(f.custoKg)}</td><td>R$ ${n2(cst)}</td></tr>`;});
 h+=`<tr style="font-weight:800;border-top:2px solid #14532d;background:#f0fdf4"><td class="tn">TOTAL</td><td class="tb2">${fmt(tPct,1)}%</td><td>${fmt(tKgMS,3)}</td><td>R$ ${n2(tc)}</td><td>${fmt(tKgMN,3)}</td><td></td><td>R$ ${n2(tCost)}</td></tr>`;
 h+=`</tbody></table></div>`;
 // Bars (hidden in print via class)
-h+=`<div class="mt10 bars-chart no-print">`;fl.forEach((f,i)=>{const p=norm[i];if(p<.001)return;const pct=p*100;const col=colors[i%colors.length];
+h+=`<div class="mt10 bars-chart no-print">`;fl.forEach((f,i)=>{const p=norm[i];if(p<.00001)return;const pct=p*100;const col=colors[i%colors.length];
 if(pct<12)h+=`<div class="br"><span class="blb">${f.name}</span><div class="btr"><div class="bfl" style="width:${pct}%;background:${col}"><span class="out" style="color:${col}">${fmt(pct,1)}%</span></div></div></div>`;
 else h+=`<div class="br"><span class="blb">${f.name}</span><div class="btr"><div class="bfl" style="width:${pct}%;background:${col}"><span class="in">${fmt(pct,1)}%</span></div></div></div>`;});
 h+=`</div></div>`;
@@ -657,12 +676,12 @@ const fl=R.feeds;const req=S.req;const keys=rkf();const colors=["#14532d","#1665
 h+=`<div class="cd cd-d"><h3 style="font-family:var(--fd);font-size:13px;margin-bottom:8px">Custos</h3><div class="cg cgd"><div class="ci"><div class="lb">Custo/kg MS</div><div class="vl">R$ ${n2(R.cMS)}</div></div><div class="ci"><div class="lb">Custo/dia</div><div class="vl">R$ ${n2(R.cDay)}</div></div><div class="ci"><div class="lb">Custo/mês</div><div class="vl">R$ ${fmt(R.cDay*30,2)}</div></div><div class="ci"><div class="lb">CMS</div><div class="vl">${n2(req.cms)} kg</div></div></div></div>`;
 h+=`<div class="cd"><h3 class="ss">Composição</h3><div class="tw"><table><thead><tr><th>Alimento</th><th>% MS</th><th>kg MS/dia</th><th>kg MN/dia</th><th>R$/dia</th></tr></thead><tbody>`;
 let rtPct=0,rtKMS=0,rtKMN=0,rtCst=0;
-fl.forEach((f,i)=>{const p=R.props[i];if(p<.001)return;const kms=p*req.cms;const kmn=kms/(f.ms/100);const cst=kmn*f.custoKg;
+fl.forEach((f,i)=>{const p=R.props[i];if(p<.00001)return;const kms=p*req.cms;const kmn=kms/(f.ms/100);const cst=kmn*f.custoKg;
 rtPct+=p*100;rtKMS+=kms;rtKMN+=kmn;rtCst+=cst;
 h+=`<tr><td class="tn">${f.name}</td><td class="tb2">${fmt(p*100,1)}%</td><td>${fmt(kms,3)}</td><td>${fmt(kmn,3)}</td><td>R$ ${n2(cst)}</td></tr>`;});
 h+=`<tr style="font-weight:800;border-top:2px solid #14532d;background:#f0fdf4"><td class="tn">TOTAL</td><td class="tb2">${fmt(rtPct,1)}%</td><td>${fmt(rtKMS,3)}</td><td>${fmt(rtKMN,3)}</td><td>R$ ${n2(rtCst)}</td></tr>`;
 h+=`</tbody></table></div><div class="mt10 bars-chart no-print">`;
-fl.forEach((f,i)=>{const p=R.props[i];if(p<.001)return;const pct=p*100;const col=colors[i%colors.length];
+fl.forEach((f,i)=>{const p=R.props[i];if(p<.00001)return;const pct=p*100;const col=colors[i%colors.length];
 if(pct<12)h+=`<div class="br"><span class="blb">${f.name}</span><div class="btr"><div class="bfl" style="width:${pct}%;background:${col}"><span class="out" style="color:${col}">${fmt(pct,1)}%</span></div></div></div>`;
 else h+=`<div class="br"><span class="blb">${f.name}</span><div class="btr"><div class="bfl" style="width:${pct}%;background:${col}"><span class="in">${fmt(pct,1)}%</span></div></div></div>`;});
 h+=`</div></div>`;
@@ -836,12 +855,14 @@ if (HAS_API) {
         goTab('feeds'); rFeeds();
         if (d.diets && d.diets.length) {
           for (var i = 0; i < d.diets.length; i++) {
-            var diet = d.diets[i];
-            await window.api.saveDiet({
-              name: diet.name, species_id: diet.species_id || S.sp, species_label: diet.species_label || diet.sp,
-              date: diet.date, cost_day: diet.cost_day || diet.cDay || 0, source: diet.source || 'import',
-              state: diet.state || {}
-            });
+            try {
+              var diet = d.diets[i];
+              await window.api.saveDiet({
+                name: diet.name || ('Dieta ' + (i+1)), species_id: diet.species_id || S.sp, species_label: diet.species_label || diet.sp,
+                date: diet.date || new Date().toLocaleDateString('pt-BR'), cost_day: diet.cost_day || diet.cDay || 0, source: diet.source || 'import',
+                state: diet.state || diet.data || {}
+              });
+            } catch(de) { console.error('Error importing diet:', de); }
           }
         }
         nAlert('Importado com sucesso!');
