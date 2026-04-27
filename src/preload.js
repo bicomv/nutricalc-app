@@ -16,4 +16,6 @@ contextBridge.exposeInMainWorld('api', {
   // Dialogs
   exportJSON: (data, name) => ipcRenderer.invoke('dialog-save-json', data, name),
   importJSON: () => ipcRenderer.invoke('dialog-open-json'),
+  // Updates
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
 });

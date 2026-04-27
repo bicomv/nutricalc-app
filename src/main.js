@@ -88,6 +88,16 @@ function setupIPC() {
     return true;
   });
 
+  // Manual update check
+  ipcMain.handle('check-for-updates', async () => {
+    try {
+      const result = await autoUpdater.checkForUpdatesAndNotify();
+      return { success: true, version: result?.updateInfo?.version || null };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  });
+
   // Import
   ipcMain.handle('dialog-open-json', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog(win, {
