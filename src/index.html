@@ -943,26 +943,30 @@ if (HAS_API) {
     updFt();
   };
 
-  // ── CHECK FOR UPDATES ──
-  window.checkAppUpdate = async function() {
-    if (typeof HAS_API !== 'undefined' && HAS_API && window.api.checkForUpdates) {
-      try {
-        nAlert('Verificando atualizações...');
-        var res = await window.api.checkForUpdates();
-        if (res && res.success && res.version) {
-          nAlert('Nova versão disponível: ' + res.version + '. A atualização será baixada automaticamente.');
-        } else if (res && res.success) {
-          nAlert('Você já está na versão mais recente!');
-        } else {
-          nAlert('Não foi possível verificar: ' + (res.error || 'Tente novamente mais tarde.'));
-        }
-      } catch(e) { nAlert('Erro ao verificar: ' + e.message); }
-    } else {
-      nAlert('Verificação de atualização disponível apenas no aplicativo desktop.');
-    }
-  };
-
 })();
+
+// ══════════ CHECK FOR UPDATES (global) ══════════
+function checkAppUpdate() {
+  if (typeof HAS_API !== 'undefined' && HAS_API && window.api && window.api.checkForUpdates) {
+    nAlert('Verificando atualizações...');
+    var timeout = setTimeout(function() { nAlert('Tempo esgotado. Verifique sua conexão ou tente novamente.'); }, 15000);
+    window.api.checkForUpdates().then(function(res) {
+      clearTimeout(timeout);
+      if (res && res.success && res.version) {
+        nAlert('Nova versão disponível: v' + res.version + '. A atualização será baixada automaticamente.');
+      } else if (res && res.success) {
+        nAlert('✅ Você já está na versão mais recente!');
+      } else {
+        nAlert('Não foi possível verificar: ' + (res && res.error ? res.error : 'Tente novamente mais tarde.'));
+      }
+    }).catch(function(e) {
+      clearTimeout(timeout);
+      nAlert('Erro ao verificar atualização: ' + e.message);
+    });
+  } else {
+    nAlert('Verificação de atualização disponível apenas no aplicativo desktop.');
+  }
+}
 </script>
 </body>
 </html>
