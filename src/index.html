@@ -948,23 +948,20 @@ if (HAS_API) {
 // ══════════ CHECK FOR UPDATES (global) ══════════
 function checkAppUpdate() {
   if (typeof HAS_API !== 'undefined' && HAS_API && window.api && window.api.checkForUpdates) {
-    nAlert('Verificando atualizações...');
-    var timeout = setTimeout(function() { nAlert('Tempo esgotado. Verifique sua conexão ou tente novamente.'); }, 15000);
+    alert('Verificando atualizações...');
     window.api.checkForUpdates().then(function(res) {
-      clearTimeout(timeout);
       if (res && res.success && res.version) {
-        nAlert('Nova versão disponível: v' + res.version + '. A atualização será baixada automaticamente.');
+        alert('Nova versão disponível: v' + res.version + '.\nA atualização será baixada automaticamente.');
       } else if (res && res.success) {
-        nAlert('✅ Você já está na versão mais recente!');
+        alert('✅ Você já está na versão mais recente!');
       } else {
-        nAlert('Não foi possível verificar: ' + (res && res.error ? res.error : 'Tente novamente mais tarde.'));
+        alert('Não foi possível verificar:\n' + (res && res.error ? res.error : 'Tente novamente mais tarde.'));
       }
     }).catch(function(e) {
-      clearTimeout(timeout);
-      nAlert('Erro ao verificar atualização: ' + e.message);
+      alert('Erro ao verificar atualização:\n' + e.message);
     });
   } else {
-    nAlert('Verificação de atualização disponível apenas no aplicativo desktop.');
+    alert('Verificação de atualização disponível apenas no aplicativo desktop.');
   }
 }
 </script>
