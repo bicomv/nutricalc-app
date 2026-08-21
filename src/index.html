@@ -612,18 +612,19 @@ return x;}
 
 // ══════════ T&E MS ══════════
 function rTeMS(){const fl=selfn().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
-let h=`<h2 class="st" style="margin-bottom:2px">Tentativa e Erro — Matéria Seca</h2><p class="tm mb10">Vasos comunicantes: ao alterar um ingrediente, os demais se ajustam proporcionalmente.</p>`;
+let h=`<h2 class="st" style="margin-bottom:2px">Tentativa e Erro — Matéria Seca</h2><p class="tm mb10">💡 <b>Barras deslizantes:</b> Ajustam os demais ingredientes proporcionalmente.<br>📝 <b>Caixas numéricas da direita:</b> Fixam a quantidade exata digitada sem alterar as outras barras.</p>`;
 if(!fl.length){$('p-teMS').innerHTML=h+`<div class="cd es"><div class="ic">📦</div>Nenhum alimento selecionado.</div>`;return;}
 if(!Object.keys(S.mMS).length&&fl.length){S.mMS[fl[0].id]=100;}
 h+=`<div class="cd"><h3 class="ss">Proporções (%MS)</h3>`;
-fl.forEach(f=>{const v=S.mMS[f.id]||0;const cMS=f.custoKg/(f.ms/100);h+=`<div class="sr"><span class="nm">${f.name} <span style="font-size:9px;color:var(--c5)">(R$ ${cMS.toFixed(2)}/kg MS)</span></span><input type="range" min="0" max="100" step="0.1" value="${v}" oninput="adjMS(${f.id},this.value)" data-ms="${f.id}"><input type="number" step="0.01" min="0" max="100" value="${v}" class="ism" onchange="adjMS(${f.id},this.value)"><span class="u">%</span></div>`;});
+fl.forEach(f=>{const v=S.mMS[f.id]||0;const cMS=f.custoKg/(f.ms/100);h+=`<div class="sr"><span class="nm">${f.name} <span style="font-size:9px;color:var(--c5)">(R$ ${cMS.toFixed(2)}/kg MS)</span></span><input type="range" min="0" max="100" step="0.1" value="${v}" oninput="adjMS(${f.id},this.value)" data-ms="${f.id}"><input type="number" step="0.01" min="0" max="100" value="${v}" class="ism" oninput="setMSDirect(${f.id},this.value)" onchange="setMSDirect(${f.id},this.value,true)"><span class="u">%</span></div>`;});
 h+=`<div id="msSB"></div></div><div id="msR"></div>`;$('p-teMS').innerHTML=h;updMSR();}
+function setMSDirect(id,val,isChange){const nv=Math.max(0,Math.min(100,num(val)||0));S.mMS[id]=nv;const sl=document.querySelector(`[data-ms="${id}"]`);if(sl){sl.value=nv;if(isChange&&sl.nextElementSibling){sl.nextElementSibling.value=nv.toFixed(2);}}updMSR();}
 function adjMS(id,val){const fl=selfn();const nv=Math.max(0,Math.min(100,num(val)||0));const old=S.mMS[id]||0;const diff=nv-old;S.mMS[id]=nv;
 const others=fl.filter(f=>f.id!==id);const oSum=others.reduce((s,f)=>s+(S.mMS[f.id]||0),0);
 if(oSum>0&&diff!==0){others.forEach(f=>{const ov=S.mMS[f.id]||0;S.mMS[f.id]=Math.max(0,ov-diff*(ov/oSum));});}
 const total=fl.reduce((s,f)=>s+(S.mMS[f.id]||0),0);
 if(total>100.05){const ex=total-100;const os2=fl.filter(f=>f.id!==id).reduce((s,f)=>s+(S.mMS[f.id]||0),0);if(os2>0)fl.filter(f=>f.id!==id).forEach(f=>{S.mMS[f.id]=Math.max(0,(S.mMS[f.id]||0)-ex*((S.mMS[f.id]||0)/os2));});}
-fl.forEach(f=>{const sl=document.querySelector(`[data-ms="${f.id}"]`);if(sl){sl.value=S.mMS[f.id]||0;sl.nextElementSibling.value=(S.mMS[f.id]||0).toFixed(2);}});updMSR();}
+fl.forEach(f=>{const sl=document.querySelector(`[data-ms="${f.id}"]`);if(sl){sl.value=S.mMS[f.id]||0;if(sl.nextElementSibling)sl.nextElementSibling.value=(S.mMS[f.id]||0).toFixed(2);}});updMSR();}
 
 // ══════════ PRICE ADJUSTMENT ══════════
 function rPrc(){const fl=selfn().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
