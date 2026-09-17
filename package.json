@@ -1,14 +1,14 @@
 {
   "name": "nutricalc",
-  "version": "4.0.7",
+  "version": "4.0.8",
   "description": "Nutricalc — Formulação de Dietas na Nutrição Animal",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder",
-    "dist:win": "npm run setup-sqlite:win && electron-builder --win",
+    "dist:win": "node scripts/setup-sqlite.js && node ./node_modules/electron-builder/out/cli/cli.js --win",
     "dist:linux": "npm run setup-sqlite:linux && electron-builder --linux",
-    "setup-sqlite:win": "cd node_modules/better-sqlite3 && npx prebuild-install --runtime electron --target 41.2.1 --arch x64 --platform win32 --force",
+    "setup-sqlite:win": "node scripts/setup-sqlite.js",
     "setup-sqlite:linux": "cd node_modules/better-sqlite3 && npx prebuild-install --runtime electron --target 41.2.1 --arch x64 --platform linux --force"
   },
   "author": "José Carlos Arevalo Júnior",
@@ -26,8 +26,18 @@
     "files": [
       "src/**/*"
     ],
+    "asarUnpack": [
+      "node_modules/tesseract.js/**",
+      "node_modules/tesseract.js-core/**"
+    ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "differentialPackage": false
     },
     "linux": {
       "target": "AppImage"
@@ -40,6 +50,9 @@
   },
   "dependencies": {
     "better-sqlite3": "^12.2.0",
-    "electron-updater": "^6.8.3"
+    "electron-updater": "^6.8.3",
+    "pdf-parse": "^1.1.1",
+    "pngjs": "^7.0.0",
+    "tesseract.js": "^7.0.0"
   }
 }

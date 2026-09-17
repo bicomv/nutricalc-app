@@ -187,7 +187,7 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
 
 <div id="app" class="app">
   <div class="hdr no-print">
-    <img class="hdr-i" id="hI" alt="" style="height:40px;vertical-align:middle;margin-right:6px"><h1>Nutricalc</h1><span class="bdg" id="hB">—</span>
+    <img class="hdr-i" id="hI" alt="" style="height:40px;vertical-align:middle;margin-right:6px"><h1>Nutricalc</h1><span class="bdg" id="hB">—</span><span class="bdg" id="hDbName" onclick="goTab('dbs')" style="cursor:pointer;background:rgba(255,255,255,.2);margin-left:6px" title="Clique para gerenciar bancos de dados">🗄️ Banco: Padrão</span>
     <div class="hdr-r">
       <button class="btn bs" onclick="exportJSON()">📤 Exportar</button>
       <button class="btn bs" onclick="onImportJSON()">📥 Importar</button>
@@ -197,6 +197,7 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
   </div>
   <div class="tabs no-print">
     <button class="tab on" data-t="info">📝 Info</button>
+    <button class="tab" data-t="dbs">🗄️ Bancos</button>
     <button class="tab" data-t="feeds">📦 Alimentos</button>
     <button class="tab" data-t="nuts">🔬 Nutrientes</button>
     <button class="tab" data-t="reqs">📋 Exigências</button>
@@ -209,6 +210,7 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
   </div>
   <div class="main">
     <div id="p-info" class="pn on"></div>
+    <div id="p-dbs" class="pn"></div>
     <div id="p-feeds" class="pn"></div>
     <div id="p-nuts" class="pn"></div>
     <div id="p-reqs" class="pn"></div>
@@ -451,6 +453,7 @@ presets:{
 
 // ══════════ STATE ══════════
 let S={sp:null,nuts:[],feeds:[],sel:[],presets:{},aPre:'',req:{cms:10,n:{}},fc:{},mMS:{},mMN:{},optR:null,nxId:200,edId:null,search:'',diets:[],unsaved:false,
+activeDbProfileId:null,activeDbProfileName:'Banco Padrão',onlySelected:false,
 info:{responsavel:'',dieta:'',propriedade:'',animal:''}};
 const showVC=()=>{const d=DB[S.sp];return d&&(d.rum||d.hasVC);};
 
@@ -474,7 +477,6 @@ function initSpecies(sp){
   const d=DB[sp];if(!d)return;S.sp=sp;S.nuts=d.nutrients.map(n=>({...n}));S.feeds=d.feeds.map(f=>({...f}));S.sel=[...d.selectedIds];
   // Pré-marcar nutrientes padrão (NDT, PB, PDR, EE, FDN para ruminantes; TODOS para monogástricos exceto MS/MM)
   const defaults=d.rum?['ndt','pb','dpb','ee','fdn']:null;
-  S.nuts.forEach(n=>{const isMS=n.key.toUpperCase()==='MS';const isMM=n.key.toUpperCase()==='MM';if(isMS||isMM){n.enabled=false;}else if(defaults){n.enabled=defaults.includes(n.key);}else{n.enabled=true;}});
   S.presets=JSON.parse(JSON.stringify(d.presets));const pk=Object.keys(S.presets);S.aPre=pk[0]||'';
   if(S.aPre){const p=S.presets[S.aPre];S.req={cms:p.cms,n:JSON.parse(JSON.stringify(p.n))};
     // Ativar nutrientes presentes no preset
@@ -482,11 +484,12 @@ function initSpecies(sp){
   }else{S.req={cms:10,n:{}};}
   // Garantir que todos nutrientes enabled tenham entrada em req.n
   S.nuts.filter(n=>n.enabled).forEach(n=>{if(!S.req.n[n.key])S.req.n[n.key]={min:0,max:9999};});
-  S.fc={};S.mMS={};S.mMN={};S.optR=null;S.nxId=d.feeds.length+200;S.edId=null;S.search='';
+  S.fc={};S.mMS={};S.mMN={};S.optR=null;S.nxId=d.feeds.length+200;S.edId=null;S.search='';S.onlySelected=false;
   S.info={responsavel:S.info.responsavel||'',dieta:'',propriedade:S.info.propriedade||'',animal:''};
   $('landing').style.display='none';$('app').classList.add('on');($('hI').tagName==='IMG'?($('hI').src=SP_ICONS[S.sp]?'data:image/png;base64,'+SP_ICONS[S.sp]:''):$('hI').textContent=d.icon);$('hB').textContent=d.label;
   document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('on',i===0));
-  document.querySelectorAll('.pn').forEach((p,i)=>p.classList.toggle('on',i===0));rInfo();}
+  document.querySelectorAll('.pn').forEach((p,i)=>p.classList.toggle('on',i===0));rInfo();
+  loadCustomFeedsForSpecies(sp);}
 function goHome(){$('landing').style.display='';$('app').classList.remove('on');}
 function updFt(){const ft=document.querySelector('.ft');if(!ft)return;if(S.unsaved)ft.innerHTML='<span style="color:#ea580c;font-weight:700">⚠️ Dados não exportados — use 📤 Exportar para salvar!</span> • Nutricalc — UENP';else ft.innerHTML='Nutricalc • Criador: José C. Arevalo Jr. (jcarevalojr@gmail.com) • Colaboradores: Luiz G. S. Maistro, Felipe P. Souza, Marcelo A. Silva, Marcos A. A. Silva, Petrônio P. Porto, Simone F. N. Pertile';}
 
@@ -494,59 +497,910 @@ function updFt(){const ft=document.querySelector('.ft');if(!ft)return;if(S.unsav
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));document.querySelectorAll('.pn').forEach(x=>x.classList.remove('on'));
   b.classList.add('on');$('p-'+b.dataset.t).classList.add('on');
-  ({info:rInfo,feeds:rFeeds,nuts:rNuts,reqs:rReqs,opt:rOpt,teMS:rTeMS,teMN:rTeMN,res:rRes,prc:rPrc,diets:rDiets})[b.dataset.t]?.();}));
-function goTab(t){document.querySelectorAll('.tab').forEach(b=>{b.classList.toggle('on',b.dataset.t===t);});document.querySelectorAll('.pn').forEach(p=>{p.classList.toggle('on',p.id==='p-'+t);});}
+  ({info:rInfo,dbs:rDbs,feeds:rFeeds,nuts:rNuts,reqs:rReqs,opt:rOpt,teMS:rTeMS,teMN:rTeMN,res:rRes,prc:rPrc,diets:rDiets})[b.dataset.t]?.();}));
+function goTab(t){
+  document.querySelectorAll('.tab').forEach(b=>{b.classList.toggle('on',b.dataset.t===t);});
+  document.querySelectorAll('.pn').forEach(p=>{p.classList.toggle('on',p.id==='p-'+t);});
+  ({info:rInfo,dbs:rDbs,feeds:rFeeds,nuts:rNuts,reqs:rReqs,opt:rOpt,teMS:rTeMS,teMN:rTeMN,res:rRes,prc:rPrc,diets:rDiets})[t]?.();
+}
+
+// ══════════ DATABASE PROFILES (MÚLTIPLOS BANCOS) ══════════
+let _dbSaveTimer = null;
+function scheduleAutoSaveDb() {
+  if (typeof window.api === 'undefined' || !window.api.updateDbProfile || !S.activeDbProfileId) return;
+  if (_dbSaveTimer) clearTimeout(_dbSaveTimer);
+  _dbSaveTimer = setTimeout(autoSaveDbProfileImmediately, 400);
+}
+
+async function autoSaveDbProfileImmediately() {
+  if (typeof window.api === 'undefined' || !window.api.updateDbProfile || !S.activeDbProfileId) return;
+  try {
+    const currentData = {
+      feeds: S.feeds,
+      selectedIds: S.sel,
+      presets: S.presets,
+      activePreset: S.aPre,
+      req: S.req,
+      nuts: S.nuts
+    };
+    await window.api.updateDbProfile(S.activeDbProfileId, { data: currentData });
+    const ft = document.querySelector('.ft');
+    if (ft) {
+      ft.innerHTML = '💾 Dados salvos no banco: <strong>' + (S.activeDbProfileName || 'Padrão') + '</strong> • Nutricalc';
+    }
+  } catch(e) {
+    console.error('autoSaveDbProfile error:', e);
+  }
+}
+
+function loadDbProfileData(p, chosenPreset) {
+  const d = p.data || {};
+  if (Array.isArray(d.feeds) && d.feeds.length) {
+    S.feeds = JSON.parse(JSON.stringify(d.feeds));
+  }
+  if (Array.isArray(d.selectedIds)) {
+    S.sel = [...d.selectedIds];
+  }
+  if (d.presets && typeof d.presets === 'object' && Object.keys(d.presets).length) {
+    S.presets = JSON.parse(JSON.stringify(d.presets));
+  }
+  if (Array.isArray(d.nuts) && d.nuts.length) {
+    S.nuts = JSON.parse(JSON.stringify(d.nuts));
+  }
+  
+  const preKeys = Object.keys(S.presets);
+  const targetPre = chosenPreset || d.activePreset || preKeys[0] || '';
+  if (targetPre && S.presets[targetPre]) {
+    S.aPre = targetPre;
+    const pre = S.presets[targetPre];
+    S.req = { cms: pre.cms || 10, n: JSON.parse(JSON.stringify(pre.n || {})) };
+    S.nuts.forEach(n => {
+      if (n.key.toUpperCase() !== 'MS' && n.key.toUpperCase() !== 'MM' && pre.n && pre.n[n.key]) {
+        n.enabled = true;
+      }
+    });
+  } else if (d.req) {
+    S.req = JSON.parse(JSON.stringify(d.req));
+    S.aPre = '';
+  }
+  
+  S.nuts.filter(n => n.enabled).forEach(n => {
+    if (!S.req.n[n.key]) S.req.n[n.key] = { min: 0, max: 9999 };
+  });
+  
+  S.optR = null;
+  S.mMS = {};
+  S.mMN = {};
+}
+
+async function initDbProfilesForSpecies(sp) {
+  if (typeof window.api === 'undefined' || !window.api.getDbProfiles) return;
+  try {
+    const profiles = await window.api.getDbProfiles(sp);
+    if (!profiles || profiles.length === 0) {
+      const defData = {
+        feeds: S.feeds,
+        selectedIds: S.sel,
+        presets: S.presets,
+        activePreset: S.aPre,
+        req: S.req,
+        nuts: S.nuts
+      };
+      const newId = await window.api.saveDbProfile({
+        name: 'Banco Padrão',
+        species_id: sp,
+        species_label: DB[sp]?.label || sp,
+        description: 'Banco de dados padrão oficial para ' + (DB[sp]?.label || sp),
+        is_active: 1,
+        data: defData
+      });
+      S.activeDbProfileId = newId;
+      S.activeDbProfileName = 'Banco Padrão';
+    } else {
+      const activeP = profiles.find(x => x.is_active === 1) || profiles[0];
+      S.activeDbProfileId = activeP.id;
+      S.activeDbProfileName = activeP.name;
+      loadDbProfileData(activeP);
+    }
+    if ($('hDbName')) $('hDbName').textContent = '🗄️ Banco: ' + S.activeDbProfileName;
+  } catch(e) {
+    console.error('initDbProfilesForSpecies error:', e);
+  }
+}
+
+async function rDbs() {
+  if (typeof window.api === 'undefined' || !window.api.getDbProfiles) {
+    $('p-dbs').innerHTML = '<div class="cd es"><div class="ic">⚠️</div>Múltiplos bancos de dados disponíveis no modo desktop.</div>';
+    return;
+  }
+  try {
+    const profiles = await window.api.getDbProfiles(S.sp);
+    const spLabel = DB[S.sp]?.label || S.sp;
+    
+    let h = `
+      <div class="fb mb10">
+        <div>
+          <h2 class="st" style="margin:0">🗄️ Gerenciador de Bancos de Dados — ${spLabel}</h2>
+          <p class="tm" style="margin-top:2px">Gerencie bancos distintos com diferentes alimentos e exigências. Escolha qual banco e qual exigência aplicar nesta formulação.</p>
+        </div>
+        <div class="fg">
+          <button class="btn bp" onclick="modCreateDbProfile()">+ Novo Banco</button>
+          <button class="btn bs" onclick="importDbProfileUI()">📥 Importar Banco (.json)</button>
+        </div>
+      </div>
+    `;
+    
+    if (!profiles || !profiles.length) {
+      h += `<div class="cd es"><div class="ic">🗄️</div>Nenhum banco de dados cadastrado.<br><button class="btn bp mt6" onclick="initDbProfilesForSpecies(S.sp);rDbs();">Criar Banco Padrão</button></div>`;
+      $('p-dbs').innerHTML = h;
+      return;
+    }
+    
+    h += `<div class="gn" style="grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px">`;
+    
+    profiles.forEach(p => {
+      const isActive = (p.id === S.activeDbProfileId) || (p.is_active === 1);
+      const d = (isActive ? { feeds: S.feeds, sel: S.sel, presets: S.presets, aPre: S.aPre } : (p.data || {}));
+      const feedCount = (d.feeds || []).length;
+      const selCount = (d.selectedIds || d.sel || []).length;
+      const presets = d.presets || {};
+      const preKeys = Object.keys(presets);
+      const preCount = preKeys.length;
+      const actPre = isActive ? S.aPre : (d.activePreset || preKeys[0] || '');
+      const updDate = p.updated_at ? new Date(p.updated_at).toLocaleString('pt-BR') : '—';
+      
+      h += `
+        <div class="cd ${isActive ? 'cd-g' : ''}" style="display:flex;flex-direction:column;justify-content:space-between;${isActive ? 'border:2px solid var(--p3);box-shadow:0 4px 14px rgba(34,134,58,.18)' : ''}">
+          <div>
+            <div class="fb" style="align-items:flex-start;margin-bottom:8px">
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                  <h3 class="ss" style="font-size:15px;margin:0;color:var(--p)">${p.name}</h3>
+                  ${isActive ? '<span class="bg bg-ok" style="font-size:10px;font-weight:800">✅ ATIVO EM USO</span>' : ''}
+                </div>
+                <p class="tm" style="margin-top:3px;font-size:11px;color:var(--c6)">${p.description || 'Sem descrição informada.'}</p>
+              </div>
+            </div>
+            
+            <div style="background:var(--c0);padding:8px 10px;border-radius:6px;border:1px solid var(--c3);margin-bottom:10px;font-size:11px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                <span>📦 <strong>Alimentos:</strong></span>
+                <span class="tb2">${feedCount} cadastrados (${selCount} selecionados)</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                <span>📋 <strong>Exigências:</strong></span>
+                <span class="tb2">${preCount} perfil(is)</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--c5)">
+                <span>🕒 Atualizado:</span>
+                <span>${updDate}</span>
+              </div>
+            </div>
+            
+            <div style="margin-bottom:12px">
+              <label class="tl" style="font-size:11px">🎯 Exigência Selecionada:</label>
+              <select id="db_pre_${p.id}" onchange="${isActive ? 'changeActiveDbPreset(this.value)' : ''}" style="width:100%;padding:5px 7px;font-size:11px">
+                ${preKeys.length ? preKeys.map(pk => '<option value="' + pk + '" ' + (pk === actPre ? 'selected' : '') + '>' + pk + '</option>').join('') : '<option value="">(Nenhuma exigência cadastrada)</option>'}
+              </select>
+            </div>
+          </div>
+          
+          <div style="border-top:1px solid var(--c3);padding-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            ${isActive ? 
+              '<button class="btn bs" style="background:var(--p7);color:var(--p);font-weight:700" disabled>⭐ Banco Atual</button>' : 
+              '<button class="btn bp" onclick="switchDbProfile(' + p.id + ', $(\'db_pre_' + p.id + '\').value)">✅ Usar este Banco</button>'
+            }
+            <button class="btn bs" onclick="exportDbProfileUI(${p.id})" title="Exportar este banco para arquivo .json">📤 Exportar</button>
+            <button class="btn bs" onclick="duplicateDbProfileUI(${p.id})" title="Duplicar este banco">📋 Clonar</button>
+            <button class="btn bi" onclick="renameDbProfileUI(${p.id})" title="Renomear / Editar">✏️</button>
+            <button class="btn bi" style="color:#dc2626" onclick="deleteDbProfileUI(${p.id})" title="Excluir este banco">🗑️</button>
+          </div>
+        </div>
+      `;
+    });
+    
+    h += '</div>';
+    $('p-dbs').innerHTML = h;
+  } catch(e) {
+    console.error('rDbs error:', e);
+    $('p-dbs').innerHTML = '<div class="cd es">Erro ao carregar bancos de dados: ' + e.message + '</div>';
+  }
+}
+
+async function switchDbProfile(id, chosenPreset) {
+  if (typeof window.api === 'undefined' || !window.api.getDbProfiles) return;
+  try {
+    const profiles = await window.api.getDbProfiles(S.sp);
+    const p = profiles.find(x => x.id === id);
+    if (!p) return;
+    
+    await window.api.setActiveDbProfile(id, S.sp);
+    S.activeDbProfileId = id;
+    S.activeDbProfileName = p.name;
+    
+    loadDbProfileData(p, chosenPreset);
+    
+    if ($('hDbName')) $('hDbName').textContent = '🗄️ Banco: ' + S.activeDbProfileName;
+    rDbs();
+    nAlert('✅ Banco "' + p.name + '" ativado com sucesso!');
+  } catch(e) {
+    console.error('switchDbProfile error:', e);
+    nAlert('Erro ao alternar banco: ' + e.message);
+  }
+}
+
+function changeActiveDbPreset(presetName) {
+  if (!presetName || !S.presets[presetName]) return;
+  S.aPre = presetName;
+  const p = S.presets[presetName];
+  S.req = { cms: p.cms, n: JSON.parse(JSON.stringify(p.n)) };
+  S.nuts.forEach(n => {
+    if (n.key.toUpperCase() !== 'MS' && n.key.toUpperCase() !== 'MM' && p.n && p.n[n.key]) {
+      n.enabled = true;
+    }
+  });
+  rkf().forEach(k => {
+    if (!S.req.n[k]) S.req.n[k] = { min: 0, max: 9999 };
+  });
+  scheduleAutoSaveDb();
+  nAlert('✅ Exigência "' + presetName + '" ativada!');
+}
+
+function modCreateDbProfile() {
+  openMod(`
+    <h3>Novo Banco de Dados</h3>
+    <div style="margin-bottom:12px">
+      <label class="tl">Nome do Banco</label>
+      <input type="text" id="ndb_n" class="ilg" placeholder="Ex: Confinamento 2026, Fazenda Modelo...">
+    </div>
+    <div style="margin-bottom:12px">
+      <label class="tl">Descrição / Observações</label>
+      <input type="text" id="ndb_d" class="ilg" placeholder="Ex: Alimentos específicos e exigências para terminação intensiva">
+    </div>
+    <div style="margin-bottom:14px">
+      <label class="tl">Base Inicial de Dados</label>
+      <select id="ndb_src" class="ilg" style="padding:6px">
+        <option value="current">Copiar do Banco Ativo Atual ("${S.activeDbProfileName || 'Atual'}")</option>
+        <option value="default">Restaurar Banco Padrão Oficial da Espécie</option>
+        <option value="empty">Iniciar Banco em Branco (Sem Alimentos/Exigências)</option>
+      </select>
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="ndb_act" checked style="cursor:pointer"> Tornar este banco ativo imediatamente
+      </label>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="btn bp" onclick="doCreateDbProfile()">Criar Banco</button>
+      <button class="btn bs" onclick="closeMod()">Cancelar</button>
+    </div>
+  `);
+}
+
+async function doCreateDbProfile() {
+  const nm = $('ndb_n').value.trim();
+  if (!nm) return nAlert('Por favor, informe um nome para o banco.');
+  const desc = $('ndb_d').value.trim();
+  const src = $('ndb_src').value;
+  const act = $('ndb_act').checked;
+  
+  let pData;
+  if (src === 'current') {
+    pData = {
+      feeds: JSON.parse(JSON.stringify(S.feeds)),
+      selectedIds: [...S.sel],
+      presets: JSON.parse(JSON.stringify(S.presets)),
+      activePreset: S.aPre,
+      req: JSON.parse(JSON.stringify(S.req)),
+      nuts: JSON.parse(JSON.stringify(S.nuts))
+    };
+  } else if (src === 'default') {
+    const d = DB[S.sp];
+    pData = {
+      feeds: JSON.parse(JSON.stringify(d.feeds)),
+      selectedIds: [...d.selectedIds],
+      presets: JSON.parse(JSON.stringify(d.presets)),
+      activePreset: Object.keys(d.presets)[0] || '',
+      req: d.presets[Object.keys(d.presets)[0]] ? { cms: d.presets[Object.keys(d.presets)[0]].cms, n: JSON.parse(JSON.stringify(d.presets[Object.keys(d.presets)[0]].n)) } : { cms: 10, n: {} },
+      nuts: JSON.parse(JSON.stringify(d.nutrients))
+    };
+  } else {
+    pData = {
+      feeds: [],
+      selectedIds: [],
+      presets: {},
+      activePreset: '',
+      req: { cms: 10, n: {} },
+      nuts: JSON.parse(JSON.stringify(DB[S.sp]?.nutrients || S.nuts))
+    };
+  }
+  
+  try {
+    const newId = await window.api.saveDbProfile({
+      name: nm,
+      species_id: S.sp,
+      species_label: DB[S.sp]?.label || S.sp,
+      description: desc,
+      is_active: act ? 1 : 0,
+      data: pData
+    });
+    
+    closeMod();
+    if (act) {
+      await switchDbProfile(newId);
+    } else {
+      rDbs();
+      nAlert('✅ Banco "' + nm + '" criado com sucesso!');
+    }
+  } catch(e) {
+    console.error('doCreateDbProfile error:', e);
+    nAlert('Erro ao criar banco: ' + e.message);
+  }
+}
+
+async function duplicateDbProfileUI(id) {
+  const profiles = await window.api.getDbProfiles(S.sp);
+  const p = profiles.find(x => x.id === id);
+  if (!p) return;
+  const nwName = await nPrompt('Nome da cópia do banco:', p.name + ' (Cópia)');
+  if (!nwName) return;
+  const pData = (p.id === S.activeDbProfileId) ? {
+    feeds: JSON.parse(JSON.stringify(S.feeds)),
+    selectedIds: [...S.sel],
+    presets: JSON.parse(JSON.stringify(S.presets)),
+    activePreset: S.aPre,
+    req: JSON.parse(JSON.stringify(S.req)),
+    nuts: JSON.parse(JSON.stringify(S.nuts))
+  } : p.data;
+  
+  await window.api.saveDbProfile({
+    name: nwName,
+    species_id: S.sp,
+    species_label: DB[S.sp]?.label || S.sp,
+    description: p.description ? ('Cópia de ' + p.name + '. ' + p.description) : ('Cópia de ' + p.name),
+    is_active: 0,
+    data: pData
+  });
+  rDbs();
+  nAlert('✅ Banco duplicado com sucesso como "' + nwName + '"!');
+}
+
+async function renameDbProfileUI(id) {
+  const profiles = await window.api.getDbProfiles(S.sp);
+  const p = profiles.find(x => x.id === id);
+  if (!p) return;
+  openMod(`
+    <h3>Editar Banco de Dados</h3>
+    <div style="margin-bottom:12px">
+      <label class="tl">Nome do Banco</label>
+      <input type="text" id="edb_n" value="${p.name}" class="ilg">
+    </div>
+    <div style="margin-bottom:14px">
+      <label class="tl">Descrição / Observações</label>
+      <input type="text" id="edb_d" value="${p.description||''}" class="ilg">
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="btn bp" onclick="doSaveRenameDb(${id})">Salvar</button>
+      <button class="btn bs" onclick="closeMod()">Cancelar</button>
+    </div>
+  `);
+}
+
+async function doSaveRenameDb(id) {
+  const nm = $('edb_n').value.trim();
+  if (!nm) return nAlert('Nome obrigatório.');
+  const desc = $('edb_d').value.trim();
+  await window.api.updateDbProfile(id, { name: nm, description: desc });
+  if (id === S.activeDbProfileId) {
+    S.activeDbProfileName = nm;
+    if ($('hDbName')) $('hDbName').textContent = '🗄️ Banco: ' + nm;
+  }
+  closeMod();
+  rDbs();
+  nAlert('✅ Dados do banco atualizados!');
+}
+
+async function deleteDbProfileUI(id) {
+  const profiles = await window.api.getDbProfiles(S.sp);
+  if (profiles.length <= 1) {
+    return nAlert('Não é possível excluir o único banco de dados desta espécie.');
+  }
+  const p = profiles.find(x => x.id === id);
+  if (!p) return;
+  const ok = await nConfirm('Tem certeza que deseja excluir o banco "' + p.name + '"?\nTodos os alimentos e exigências deste banco serão removidos.');
+  if (!ok) return;
+  
+  await window.api.deleteDbProfile(id);
+  if (id === S.activeDbProfileId) {
+    const remaining = profiles.filter(x => x.id !== id);
+    if (remaining.length) {
+      await switchDbProfile(remaining[0].id);
+      return;
+    }
+  }
+  rDbs();
+  nAlert('Banco excluído.');
+}
+
+async function exportDbProfileUI(id) {
+  if (typeof window.api === 'undefined' || !window.api.exportDbProfile) return;
+  try {
+    const profiles = await window.api.getDbProfiles(S.sp);
+    const p = profiles.find(x => x.id === id);
+    if (!p) return;
+    
+    const profileData = (p.id === S.activeDbProfileId) ? {
+      feeds: S.feeds,
+      selectedIds: S.sel,
+      presets: S.presets,
+      activePreset: S.aPre,
+      req: S.req,
+      nuts: S.nuts
+    } : p.data;
+    
+    const exportPayload = {
+      app: 'Nutricalc',
+      format: 'database_profile',
+      version: '4.0.7',
+      species_id: S.sp,
+      species_label: DB[S.sp]?.label || S.sp,
+      profile_name: p.name,
+      description: p.description || '',
+      exported_at: new Date().toISOString(),
+      data: profileData
+    };
+    
+    const safeName = (p.name || 'banco').toLowerCase().replace(/[^a-z0-9]/gi, '_');
+    const defaultFileName = `banco_${S.sp}_${safeName}_${new Date().toISOString().slice(0,10)}.json`;
+    const res = await window.api.exportDbProfile(exportPayload, defaultFileName);
+    if (res) {
+      nAlert('✅ Banco "' + p.name + '" exportado com sucesso!');
+    }
+  } catch(e) {
+    console.error('exportDbProfileUI error:', e);
+    nAlert('Erro ao exportar banco: ' + e.message);
+  }
+}
+
+async function importDbProfileUI() {
+  if (typeof window.api === 'undefined' || !window.api.importDbProfile) return;
+  try {
+    const imported = await window.api.importDbProfile();
+    if (!imported) return;
+    if (imported.error) return nAlert(imported.error);
+    
+    let name = imported.profile_name || imported.name || 'Banco Importado';
+    let desc = imported.description || ('Importado em ' + new Date().toLocaleDateString('pt-BR'));
+    let pData = imported.data || imported;
+    
+    if (!pData.feeds || !Array.isArray(pData.feeds)) {
+      return nAlert('Arquivo inválido: nenhum alimento encontrado no arquivo.');
+    }
+    
+    const targetSpecies = imported.species_id || S.sp;
+    if (targetSpecies !== S.sp) {
+      const ok = await nConfirm(`Este banco foi exportado para "${imported.species_label || targetSpecies}". Deseja importá-lo mesmo assim para a espécie atual (${DB[S.sp]?.label})?`);
+      if (!ok) return;
+    }
+    
+    const customName = await nPrompt('Nome para o banco importado:', name);
+    if (!customName) return;
+    
+    const newId = await window.api.saveDbProfile({
+      name: customName,
+      species_id: S.sp,
+      species_label: DB[S.sp]?.label || S.sp,
+      description: desc,
+      is_active: 0,
+      data: {
+        feeds: pData.feeds || [],
+        selectedIds: pData.selectedIds || pData.sel || [],
+        presets: pData.presets || {},
+        activePreset: pData.activePreset || pData.aPre || '',
+        req: pData.req || { cms: 10, n: {} },
+        nuts: pData.nuts || S.nuts
+      }
+    });
+    
+    const wantUse = await nConfirm(`Banco "${customName}" importado com sucesso!\nPossui ${pData.feeds.length} alimentos e ${Object.keys(pData.presets||{}).length} perfis de exigências.\n\nDeseja ativar e usar este banco agora?`);
+    if (wantUse) {
+      await switchDbProfile(newId);
+    } else {
+      rDbs();
+    }
+  } catch(e) {
+    console.error('importDbProfileUI error:', e);
+    nAlert('Erro ao importar banco: ' + e.message);
+  }
+}
 
 // ══════════ FEEDS ══════════
-function rFeeds(){const q=S.search.toLowerCase();const fl=S.feeds.filter(f=>f.name.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));const nk=ank();
-let h=`<div class="fb mb10"><h2 class="st" style="margin:0">Alimentos</h2><div class="fg"><input type="text" placeholder="🔍 Buscar (Enter p/ filtrar)..." class="imd" value="${S.search}" onchange="S.search=this.value;rFeeds()" onkeydown="if(event.key==='Enter'){S.search=this.value;rFeeds();}"><button class="btn bp" onclick="modAddFeed()">+ Adicionar</button><button class="btn bs" onclick="S.sel=[];rFeeds()">Limpar Seleção</button><button class="btn bs" onclick="S.sel=[...new Set([...S.sel, ...fl.map(f=>f.id)])];rFeeds()">Selecionar Todos</button></div></div>`;
-h+=`<div class="cd" style="padding:0"><div class="tw"><table><thead><tr><th>✓</th><th>Alimento</th><th>Tipo</th>`;nk.forEach(k=>h+=`<th>${k.toUpperCase()}</th>`);h+=`<th>R$/kg</th><th></th></tr></thead><tbody>`;
-fl.forEach(f=>{const ck=S.sel.includes(f.id)?'checked':'';
-  h+=`<tr><td><input type="checkbox" ${ck} onchange="tglSel(${f.id})"></td>`;
-  h+=`<td class="tn">${f.name}</td><td style="font-size:9px;text-align:center">${f.tipo||''}</td>`;nk.forEach(k=>h+=`<td>${n2(f[k])}</td>`);h+=`<td class="tb2">R$ ${n2(f.custoKg)}</td>`;
-  h+=`<td><button class="bi" onclick="modEditFeed(${f.id})">✏️</button><button class="bi" onclick="delFeed(${f.id})">🗑️</button></td></tr>`;});
-h+=`</tbody></table></div></div><p class="tm mt6">✅ ${S.sel.length} selecionados</p>`;$('p-feeds').innerHTML=h;}
-function tglSel(id){const i=S.sel.indexOf(id);if(i>=0)S.sel.splice(i,1);else S.sel.push(id);rFeeds();}
+function rFeeds(){
+  const q=(S.search||'').toLowerCase();
+  let baseList=S.feeds;
+  if(S.onlySelected){
+    baseList=baseList.filter(f=>S.sel.includes(f.id));
+  }
+  const fl=baseList.filter(f=>f.name.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+  const nk=ank();
+  let h=`<div class="fb mb10"><div class="fc" style="gap:10px"><h2 class="st" style="margin:0">Alimentos</h2><span class="bg ${S.onlySelected?'bg-ok':''}" style="border:1px solid var(--c4)">${S.sel.length} selecionado(s) / ${S.feeds.length} total</span></div>`;
+  h+=`<div class="fg"><input type="text" placeholder="🔍 Buscar alimento..." class="imd" value="${S.search}" oninput="S.search=this.value;rFeeds()" onkeydown="if(event.key==='Enter'){S.search=this.value;rFeeds();}">`;
+  h+=`<button class="btn ${S.onlySelected?'bp':'bs'}" onclick="S.onlySelected=!S.onlySelected;rFeeds()" title="Alternar entre ver todos e apenas os marcados">${S.onlySelected?'👁️ Ver Todos':'📋 Apenas Selecionados ('+S.sel.length+')'}</button>`;
+  h+=`<button class="btn bp" style="background:#0284c7;border-color:#0284c7" onclick="importCqbalPdf()" title="Importar alimento a partir de relatório em PDF do CQBAL">📄 Importar PDF CQBAL</button>`;
+  h+=`<button class="btn bp" onclick="modAddFeed()">+ Adicionar</button><button class="btn bs" onclick="S.sel=[];rFeeds()">Limpar Seleção</button><button class="btn bs" onclick="S.sel=[...new Set([...S.sel, ...fl.map(f=>f.id)])];rFeeds()">Selecionar Todos</button></div></div>`;
+  
+  if(!fl.length){
+    if(S.onlySelected && !S.sel.length){
+      h+=`<div class="cd es"><div class="ic">📋</div>Nenhum alimento selecionado no momento.<br><p class="tm mt6">Marque os alimentos desejados na lista completa para visualizá-los aqui.</p><button class="btn bs mt10" onclick="S.onlySelected=false;rFeeds()">Mostrar Todos os Alimentos</button></div>`;
+    }else{
+      h+=`<div class="cd es"><div class="ic">🔍</div>Nenhum alimento encontrado para "${S.search}".</div>`;
+    }
+    $('p-feeds').innerHTML=h;
+    return;
+  }
+
+  h+=`<div class="cd" style="padding:0"><div class="tw"><table><thead><tr><th>✓</th><th>Alimento</th><th>Tipo</th>`;nk.forEach(k=>h+=`<th>${k.toUpperCase()}</th>`);h+=`<th>R$/kg</th><th></th></tr></thead><tbody>`;
+  fl.forEach(f=>{const ck=S.sel.includes(f.id)?'checked':'';
+    h+=`<tr><td><input type="checkbox" ${ck} onchange="tglSel(${f.id})"></td>`;
+    h+=`<td class="tn">${f.name}</td><td style="font-size:9px;text-align:center">${f.tipo||''}</td>`;nk.forEach(k=>h+=`<td>${n2(f[k])}</td>`);h+=`<td class="tb2">R$ ${n2(f.custoKg)}</td>`;
+    h+=`<td><button class="bi" onclick="modEditFeed(${f.id})">✏️</button><button class="bi" onclick="delFeed(${f.id})">🗑️</button></td></tr>`;});
+  h+=`</tbody></table></div></div><p class="tm mt6">✅ ${S.sel.length} selecionados de ${S.feeds.length} cadastrados ${S.onlySelected?'• <span style="color:var(--p);font-weight:700">Filtro de selecionados ativo</span>':''}</p>`;
+  $('p-feeds').innerHTML=h;
+}
+function tglSel(id){const i=S.sel.indexOf(id);if(i>=0)S.sel.splice(i,1);else S.sel.push(id);rFeeds();scheduleAutoSaveDb();}
 function upF(id,k,v){const f=S.feeds.find(x=>x.id===id);if(f){f[k]=k==='name'?v:num(v)||0;}}
 async function delFeed(id){
   const f=S.feeds.find(x=>x.id===id);if(!f)return;
   const ok=typeof nConfirm==='function'?await nConfirm('Excluir "'+f.name+'"?'):confirm('Excluir?');
   if(!ok)return;
-  // Remove from memory
   const idx=S.feeds.findIndex(x=>x.id===id);
   if(idx>=0)S.feeds.splice(idx,1);
   S.sel=S.sel.filter(x=>x!==id);
-  // Remove from DB if custom
   if(f._dbId && typeof window.api!=='undefined'){
     try{await window.api.deleteCustomFeed(f._dbId);}catch(e){console.error(e);}
   }
   rFeeds();
+  if(typeof autoSaveDbProfileImmediately==='function') autoSaveDbProfileImmediately();
 }
 function modAddFeed(){let h=`<h3>Novo Alimento</h3><div class="ga"><div style="grid-column:1/-1"><label class="tl">Nome</label><input type="text" id="nf_n" class="ilg" placeholder="Ex: Soja (farelo)"></div><div style="grid-column:1/-1"><label class="tl">Tipo</label><select id="nf_tipo" class="ilg"><option value="">— selecione —</option><option value="Volumoso">Volumoso</option><option value="Concentrado">Concentrado</option><option value="Mineral">Mineral</option></select></div>`;ank().forEach(k=>{const n=S.nuts.find(x=>x.key===k);h+=`<div><label class="tl">${n?n.label:k}</label><input type="number" id="nf_${k}" value="0" step="0.01" class="ilg"></div>`;});h+=`<div><label class="tl">R$/kg MN</label><input type="number" id="nf_c" value="0" step="0.01" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doAddFeed()">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`;openMod(h);}
 function modEditFeed(id){const f=S.feeds.find(x=>x.id===id);if(!f)return;let h=`<h3>Editar: ${f.name}</h3><div class="ga"><div style="grid-column:1/-1"><label class="tl">Nome</label><input type="text" id="ef_n" class="ilg" value="${f.name||''}"></div><div style="grid-column:1/-1"><label class="tl">Tipo</label><select id="ef_tipo" class="ilg"><option value="">— selecione —</option><option value="Volumoso"${f.tipo==='Volumoso'?' selected':''}>Volumoso</option><option value="Concentrado"${f.tipo==='Concentrado'?' selected':''}>Concentrado</option><option value="Mineral"${f.tipo==='Mineral'?' selected':''}>Mineral</option></select></div>`;ank().forEach(k=>{const n=S.nuts.find(x=>x.key===k);h+=`<div><label class="tl">${n?n.label:k}</label><input type="number" id="ef_${k}" value="${f[k]||0}" step="0.01" class="ilg"></div>`;});h+=`<div><label class="tl">R$/kg MN</label><input type="number" id="ef_c" value="${f.custoKg||0}" step="0.01" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doEditFeed(${id})">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`;openMod(h);}
-function doEditFeed(id){const f=S.feeds.find(x=>x.id===id);if(!f)return;const nm=$('ef_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');f.name=nm;f.tipo=$('ef_tipo').value;f.custoKg=num($('ef_c').value)||0;ank().forEach(k=>{f[k]=num($('ef_'+k).value)||0;});closeMod();rFeeds();}
-function doAddFeed(){const nm=$('nf_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');const f={id:S.nxId++,name:nm,tipo:$('nf_tipo').value||'',custoKg:num($('nf_c').value)||0};ank().forEach(k=>{f[k]=num($('nf_'+k).value)||0;});S.feeds.push(f);closeMod();rFeeds();}
+async function doEditFeed(id){const f=S.feeds.find(x=>x.id===id);if(!f)return;const nm=$('ef_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');f.name=nm;f.tipo=$('ef_tipo').value;f.custoKg=num($('ef_c').value)||0;ank().forEach(k=>{f[k]=num($('ef_'+k).value)||0;});if(f._dbId && typeof window.api!=='undefined'&&window.api.updateCustomFeed){try{await window.api.updateCustomFeed(f._dbId,f);}catch(e){console.error(e);}}closeMod();rFeeds();if(typeof autoSaveDbProfileImmediately==='function') autoSaveDbProfileImmediately();}
+async function doAddFeed(){const nm=$('nf_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');const f={id:S.nxId++,name:nm,tipo:$('nf_tipo').value||'',custoKg:num($('nf_c').value)||0};ank().forEach(k=>{f[k]=num($('nf_'+k).value)||0;});if(typeof window.api!=='undefined'&&window.api.saveCustomFeed){try{const dbId=await window.api.saveCustomFeed(S.sp,f);f._dbId=dbId;}catch(e){console.error(e);}}S.feeds.push(f);closeMod();rFeeds();if(typeof autoSaveDbProfileImmediately==='function') autoSaveDbProfileImmediately();}
+
+async function loadCustomFeedsForSpecies(sp){
+  if(typeof window.api==='undefined'||!window.api.getCustomFeeds)return;
+  try{
+    const list=await window.api.getCustomFeeds(sp);
+    if(list&&list.length){
+      list.forEach(cf=>{
+        if(!S.feeds.some(f=>(cf._dbId&&f._dbId===cf._dbId)||f.name===cf.name)){
+          cf.id=S.nxId++;
+          S.feeds.push(cf);
+        }
+      });
+      rFeeds();
+    }
+  }catch(e){console.error('Erro ao carregar custom feeds do SQLite:',e);}
+}
+
+async function importCqbalPdf(){
+  if(typeof window.api==='undefined'||!window.api.openCqbalPdf){
+    return nAlert('A importação direta de PDFs requer o aplicativo Desktop Nutricalc.');
+  }
+  try{
+    const items=await window.api.openCqbalPdf();
+    if(!items||!items.length)return;
+    for(const item of items){
+      await promptConfirmCqbalFeed(item);
+    }
+  }catch(err){
+    console.error('Erro importCqbalPdf:',err);
+    nAlert('Falha ao abrir PDF do CQBAL: '+err.message);
+  }
+}
+
+window.applyCqbalRefFeed = function(id){
+  const f=S.feeds.find(x=>x.id===num(id));
+  if(!f)return;
+  if($('cq_tipo') && f.tipo) $('cq_tipo').value=f.tipo;
+  if($('cq_c') && f.custoKg) $('cq_c').value=f.custoKg;
+  ank().forEach(k=>{
+    const el=$('cq_'+k);
+    if(el && f[k]!==undefined){
+      el.value=f[k];
+    }
+  });
+};
+
+function promptConfirmCqbalFeed(parsedItem){
+  return new Promise((resolve)=>{
+    parsedItem = parsedItem || {};
+    const alim = parsedItem.alimentoNutricalc || {};
+    
+    // 1. Tentar encontrar o nome do alimento de forma inteligente
+    let initialName = alim.name || '';
+    if (!initialName || initialName === 'Alimento CQBAL (CQBAL)' || initialName === 'Alimento CQBAL') {
+      if (parsedItem.fileName) {
+        let clean = parsedItem.fileName.replace(/\.pdf$/i, '').replace(/^media_\d+$/i, '').replace(/cqbal/gi, '').replace(/[_\-]+/g, ' ').trim();
+        if (clean.length >= 3) {
+          initialName = clean.split(' ').filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') + ' (CQBAL)';
+        }
+      }
+    }
+    if (!initialName || initialName === 'Alimento CQBAL (CQBAL)') {
+      initialName = 'Novo Alimento CQBAL';
+    }
+
+    const currentTipo = alim.tipo || 'Concentrado';
+    const nk = ank();
+    
+    function getNutVal(key) {
+      if (!key) return 0;
+      const kLow = key.toLowerCase();
+      const kUp = key.toUpperCase();
+      if (alim[key] !== undefined && alim[key] !== null && alim[key] !== 0) return alim[key];
+      if (alim[kLow] !== undefined && alim[kLow] !== null && alim[kLow] !== 0) return alim[kLow];
+      if (alim[kUp] !== undefined && alim[kUp] !== null && alim[kUp] !== 0) return alim[kUp];
+      if (parsedItem.nutrientesBrutos) {
+        if (parsedItem.nutrientesBrutos[key] !== undefined) return parsedItem.nutrientesBrutos[key];
+        if (parsedItem.nutrientesBrutos[kUp] !== undefined) return parsedItem.nutrientesBrutos[kUp];
+        if (parsedItem.nutrientesBrutos[kLow] !== undefined) return parsedItem.nutrientesBrutos[kLow];
+      }
+      return 0;
+    }
+
+    // Nutrientes que estão nas exigências ativas
+    const enabledNuts = S.nuts.filter(n => n.enabled && n.key.toUpperCase() !== 'MM');
+    const enabledKeys = enabledNuts.map(n => n.key);
+    const otherNuts = S.nuts.filter(n => !enabledKeys.includes(n.key));
+
+    let h = `<h3>📄 Importar Alimento (CQBAL / PDF)</h3>`;
+
+    const hasExtractedData = (alim.ms > 0 || alim.pb > 0 || alim.ndt > 0);
+    if (hasExtractedData) {
+      h += `
+        <div style="background:#ecfdf5;border:1.5px solid #10b981;border-radius:8px;padding:9px 12px;margin-bottom:12px;color:#065f46">
+          <div style="font-weight:700;display:flex;align-items:center;gap:6px;font-size:12px">
+            <span>✅</span> Leitura do Laudo CQBAL Concluída com Sucesso!
+          </div>
+          <div style="font-size:11px;margin-top:4px;color:#047857;display:flex;flex-wrap:wrap;gap:10px">
+            <span><strong>MS:</strong> ${alim.ms || 0}%</span>
+            <span><strong>PB:</strong> ${alim.pb || 0}%</span>
+            <span><strong>NDT:</strong> ${alim.ndt || 0}%</span>
+            <span><strong>EE:</strong> ${alim.ee || 0}%</span>
+            <span><strong>FDN:</strong> ${alim.fdn || 0}%</span>
+            <span><strong>FDA:</strong> ${alim.fda || 0}%</span>
+            <span><strong>MM:</strong> ${alim.mm || 0}%</span>
+            <span><strong>CNF:</strong> ${alim.cnf || 0}%</span>
+          </div>
+          <div style="font-size:10px;margin-top:3px;color:#059669">
+            Os campos da dieta ativa (${S.aPre || 'Padrão'}) foram preenchidos automaticamente conforme as exigências.
+          </div>
+        </div>
+      `;
+    } else {
+      h += `<div class="warn" style="margin-bottom:12px;background:var(--p7);border-color:var(--p3);color:var(--p)">`;
+      h += `<strong>Arquivo:</strong> <em>${parsedItem.fileName || 'relatório CQBAL'}</em>. Confira e preencha as informações do laudo para salvar no banco de dados.`;
+      if (parsedItem.warning) {
+        h += `<br><span style="font-size:10px;color:var(--ytx)">ℹ️ ${parsedItem.warning}</span>`;
+      }
+      h += `</div>`;
+    }
+
+    // Dropdown para carregar base de alimento existente
+    h += `
+      <div style="background:var(--c2);padding:8px 10px;border-radius:6px;border:1px solid var(--c4);margin-bottom:12px">
+        <label class="tl" style="color:var(--p);font-size:11px">💡 Copiar valores de um alimento existente de referência (opcional):</label>
+        <select id="cq_ref_feed" class="ilg" onchange="applyCqbalRefFeed(this.value)" style="padding:5px 7px;font-size:11px">
+          <option value="">— Manter dados extraídos do PDF —</option>
+          ${S.feeds.map(f => '<option value="' + f.id + '">' + f.name + ' (' + (f.tipo || 'Alimento') + ')</option>').join('')}
+        </select>
+      </div>
+    `;
+
+    h += `<div class="ga" style="margin-bottom:12px">`;
+    h += `<div style="grid-column:1/-1"><label class="tl">Nome do Alimento</label><input type="text" id="cq_n" class="ilg" value="${initialName}"></div>`;
+    h += `<div style="grid-column:1/-1"><label class="tl">Tipo</label><select id="cq_tipo" class="ilg">`;
+    h += `<option value="Concentrado" ${currentTipo==='Concentrado'?'selected':''}>Concentrado</option>`;
+    h += `<option value="Volumoso" ${currentTipo==='Volumoso'?'selected':''}>Volumoso</option>`;
+    h += `<option value="Mineral" ${currentTipo==='Mineral'?'selected':''}>Mineral</option></select></div>`;
+    h += `<div><label class="tl">Custo R$/kg MN</label><input type="number" id="cq_c" value="0.00" step="0.01" class="ilg"></div>`;
+    h += `</div>`;
+
+    // Seção de Nutrientes Requeridos nas Exigências Atuais
+    h += `<div style="background:var(--c1);border:1.5px solid var(--p5);border-radius:8px;padding:10px;margin-bottom:12px">`;
+    h += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">`;
+    h += `<strong style="color:var(--p);font-size:12px">🎯 Nutrientes Utilizados nas Exigências da Dieta (${S.aPre || 'Ativa'}):</strong>`;
+    h += `</div><div class="ga">`;
+    
+    // MS primeiro se existir
+    const msNut = S.nuts.find(n => n.key.toUpperCase() === 'MS');
+    if (msNut) {
+      const val = getNutVal('ms') || getNutVal('MS');
+      h += `<div><label class="tl" style="color:var(--p);font-weight:700">${msNut.label} (${msNut.unit})</label><input type="number" id="cq_${msNut.key}" value="${val}" step="0.01" class="ilg" style="border-color:var(--p3);font-weight:600"></div>`;
+    }
+
+    enabledNuts.filter(n => n.key.toUpperCase() !== 'MS').forEach(n => {
+      const k = n.key;
+      const val = getNutVal(k);
+      h += `<div><label class="tl" style="color:var(--p);font-weight:700">${n.label} (${n.unit})</label><input type="number" id="cq_${k}" value="${val}" step="0.01" class="ilg" style="border-color:var(--p3);font-weight:600"></div>`;
+    });
+    h += `</div></div>`;
+
+    // Seção de Demais Nutrientes Cadastrados
+    if (otherNuts.length) {
+      h += `<div style="background:var(--c0);border:1px solid var(--c3);border-radius:8px;padding:10px;margin-bottom:12px">`;
+      h += `<strong style="font-size:11px;color:var(--c6);display:block;margin-bottom:6px">🔬 Outros Nutrientes Cadastrados na Espécie:</strong><div class="ga">`;
+      otherNuts.filter(n => n.key.toUpperCase() !== 'MS').forEach(n => {
+        const k = n.key;
+        const val = getNutVal(k);
+        h += `<div><label class="tl">${n.label} (${n.unit})</label><input type="number" id="cq_${k}" value="${val}" step="0.01" class="ilg"></div>`;
+      });
+      h += `</div></div>`;
+    }
+
+    h += `<div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">`;
+    h += `<button class="btn bp" id="btnSaveCqbal" style="background:#0284c7;border-color:#0284c7">💾 Salvar no Banco de Dados</button>`;
+    h += `<button class="btn bs" id="btnCancelCqbal">Cancelar</button></div>`;
+    
+    openMod(h);
+
+    $('btnSaveCqbal').onclick = async () => {
+      const nm = $('cq_n').value.trim();
+      if (!nm) return nAlert('Nome do alimento é obrigatório.');
+      const f = {
+        id: S.nxId++,
+        name: nm,
+        tipo: $('cq_tipo').value || 'Concentrado',
+        custoKg: num($('cq_c').value) || 0
+      };
+      nk.forEach(k => {
+        const el = $('cq_' + k);
+        f[k] = el ? (num(el.value) || 0) : 0;
+      });
+      
+      const rumIds = ['bovcorte','bovleite','ovinos','caprinos'];
+      const feedSpId = rumIds.indexOf(S.sp) >= 0 ? 'ruminantes' : S.sp;
+      f._custom = true;
+      if (typeof window.api !== 'undefined' && window.api.saveCustomFeed) {
+        try {
+          const dbId = await window.api.saveCustomFeed(feedSpId, f);
+          f._dbId = dbId;
+        } catch(e) { console.error('Erro ao salvar custom feed no SQLite:', e); }
+      }
+      S.feeds.push(f);
+      if (!S.sel.includes(f.id)) S.sel.push(f.id);
+      closeMod();
+      rFeeds();
+      if (typeof autoSaveDbProfileImmediately === 'function') autoSaveDbProfileImmediately();
+      nAlert('✅ Alimento "' + nm + '" adicionado e salvo no banco de dados!');
+      resolve(true);
+    };
+
+    $('btnCancelCqbal').onclick = () => {
+      closeMod();
+      resolve(false);
+    };
+  });
+}
+
+// Drag & Drop de PDFs CQBAL
+window.addEventListener('dragover', e => { e.preventDefault(); });
+window.addEventListener('drop', async e => {
+  e.preventDefault();
+  if(!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+  const files = Array.from(e.dataTransfer.files).filter(f => f.name.toLowerCase().endsWith('.pdf'));
+  if(!files.length) return;
+  for(const file of files){
+    try{
+      const reader = new FileReader();
+      reader.onload = async function(){
+        const base64 = reader.result.split(',')[1];
+        if(typeof window.api !== 'undefined' && window.api.parseCqbalBuffer){
+          const parsed = await window.api.parseCqbalBuffer(base64, file.name);
+          await promptConfirmCqbalFeed(parsed || { fileName: file.name });
+        }
+      };
+      reader.readAsDataURL(file);
+    }catch(err){
+      console.error('Erro drag & drop PDF:', err);
+    }
+  }
+});
 
 // ══════════ NUTRIENTS ══════════
-function tglNut(k){const n=S.nuts.find(x=>x.key===k);if(!n)return;n.enabled=!n.enabled;if(!n.enabled)delete S.req.n[k];else if(!S.req.n[k])S.req.n[k]={min:0,max:9999};rNuts();if($('p-reqs'))rReqs();}
+function tglNut(k){
+  const n=S.nuts.find(x=>x.key===k);if(!n)return;
+  n.enabled=!n.enabled;
+  if(!n.enabled)delete S.req.n[k];
+  else if(!S.req.n[k])S.req.n[k]={min:0,max:9999};
+  scheduleAutoSaveDb();
+  rNuts();
+  if($('p-reqs'))rReqs();
+}
 function rNuts(){let h=`<div class="fb mb10"><h2 class="st" style="margin:0">Nutrientes</h2><button class="btn bp" onclick="modAddNut()">+ Adicionar</button></div><p class="tm mb10" style="margin-top:-6px">Marque os nutrientes que deseja usar nas exigências nutricionais.</p><div class="gn">`;S.nuts.forEach(n=>{const isMS=n.key.toUpperCase()==='MS';const checked=n.enabled?'checked':'';const dis=isMS?'disabled title="MS é obrigatória"':'';h+=`<div class="nc"><input type="checkbox" ${checked} ${dis} onchange="tglNut('${n.key}')" style="width:18px;height:18px;cursor:pointer;margin-right:4px"><div class="ni">${n.key.toUpperCase()}</div><div style="flex:1"><div class="nm">${n.desc}</div><div class="nd">${n.unit} • ${n.label}</div></div><div><button class="bi" onclick="modEditNut('${n.key}')">✏️</button><button class="bi" onclick="delNut('${n.key}')">🗑️</button></div></div>`;});h+=`</div>`;$('p-nuts').innerHTML=h;}
 function modAddNut(){openMod(`<h3>Novo Nutriente</h3><div class="ga" style="grid-template-columns:1fr 1fr"><div><label class="tl">Sigla</label><input type="text" id="nn_k" class="ilg"></div><div><label class="tl">Rótulo</label><input type="text" id="nn_l" class="ilg"></div><div><label class="tl">Unidade</label><input type="text" id="nn_u" class="ilg"></div><div><label class="tl">Descrição</label><input type="text" id="nn_d" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doAddNut()">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`);}
-function doAddNut(){const k=$('nn_k').value.trim().toLowerCase().replace(/[^a-z0-9]/g,'');if(!k||S.nuts.find(n=>n.key===k))return nAlert('Sigla inválida ou duplicada.');S.nuts.push({key:k,label:$('nn_l').value||k,unit:$('nn_u').value||'%',desc:$('nn_d').value||k,enabled:true});S.feeds.forEach(f=>{if(f[k]===undefined)f[k]=0;});closeMod();rNuts();}
-function modEditNut(key){const n=S.nuts.find(x=>x.key===key);if(!n)return;openMod(`<h3>Editar: ${n.desc}</h3><div class="ga" style="grid-template-columns:1fr 1fr"><div><label class="tl">Rótulo</label><input type="text" id="en_l" value="${n.label}" class="ilg"></div><div><label class="tl">Unidade</label><input type="text" id="en_u" value="${n.unit}" class="ilg"></div><div style="grid-column:1/-1"><label class="tl">Descrição</label><input type="text" id="en_d" value="${n.desc}" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="const x=S.nuts.find(n=>n.key==='${key}');x.label=$('en_l').value;x.unit=$('en_u').value;x.desc=$('en_d').value;closeMod();rNuts();">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`);}
-async function delNut(k){if(k.toUpperCase()==='MS')return nAlert('MS não pode ser excluída.');if(!(await nConfirm('Excluir nutriente?')))return;S.nuts=S.nuts.filter(n=>n.key!==k);Object.values(S.presets).forEach(p=>{if(p.n)delete p.n[k];});delete S.req.n[k];rNuts();}
+function doAddNut(){const k=$('nn_k').value.trim().toLowerCase().replace(/[^a-z0-9]/g,'');if(!k||S.nuts.find(n=>n.key===k))return nAlert('Sigla inválida ou duplicada.');S.nuts.push({key:k,label:$('nn_l').value||k,unit:$('nn_u').value||'%',desc:$('nn_d').value||k,enabled:true});S.feeds.forEach(f=>{if(f[k]===undefined)f[k]=0;});closeMod();rNuts();scheduleAutoSaveDb();}
+function modEditNut(key){const n=S.nuts.find(x=>x.key===key);if(!n)return;openMod(`<h3>Editar: ${n.desc}</h3><div class="ga" style="grid-template-columns:1fr 1fr"><div><label class="tl">Rótulo</label><input type="text" id="en_l" value="${n.label}" class="ilg"></div><div><label class="tl">Unidade</label><input type="text" id="en_u" value="${n.unit}" class="ilg"></div><div style="grid-column:1/-1"><label class="tl">Descrição</label><input type="text" id="en_d" value="${n.desc}" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="const x=S.nuts.find(n=>n.key==='${key}');x.label=$('en_l').value;x.unit=$('en_u').value;x.desc=$('en_d').value;closeMod();rNuts();scheduleAutoSaveDb();">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`);}
+async function delNut(k){if(k.toUpperCase()==='MS')return nAlert('MS não pode ser excluída.');if(!(await nConfirm('Excluir nutriente?')))return;S.nuts=S.nuts.filter(n=>n.key!==k);Object.values(S.presets).forEach(p=>{if(p.n)delete p.n[k];});delete S.req.n[k];rNuts();scheduleAutoSaveDb();}
 
 // ══════════ REQUIREMENTS ══════════
-function rReqs(){const keys=rkf();let h=`<h2 class="st">Exigências Nutricionais</h2><div class="cd"><div class="fb"><div><label class="tl">Perfil</label><select id="pS" onchange="applyPre()" style="min-width:240px;padding:6px;font-size:11px;font-family:var(--ff)">`;Object.keys(S.presets).forEach(k=>{h+=`<option value="${k}" ${k===S.aPre?'selected':''}>${k}</option>`;});h+=`<option value="__c">— Personalizado —</option></select></div><div class="fg"><button class="btn bs" onclick="modAddPre()">+ Novo</button><button class="btn bs" onclick="modEditPre()">✏️</button><button class="btn bd" onclick="delPre()">🗑️</button></div></div></div>`;
-h+=`<div class="cd"><h3 class="ss">CMS</h3><div class="fc"><label style="font-size:11px;font-weight:600">kg MS/dia:</label><input type="number" step="0.1" value="${S.req.cms}" class="ism" onchange="S.req.cms=num(this.value)||0"></div></div>`;
-h+=`<div class="cd"><h3 class="ss">Limites Nutricionais</h3><div class="gr">`;
-keys.forEach(k=>{const n=S.nuts.find(x=>x.key===k);const r=S.req.n[k]||{min:0,max:9999};h+=`<div class="rb"><div class="rh"><label>${n?n.desc+' ('+n.unit+')':k}</label><button class="b-open" onclick="S.req.n['${k}']={min:0,max:9999};rReqs();">EM ABERTO</button></div><div class="rr"><div><span>Mín</span><br><input type="number" step="0.01" value="${r.min}" class="ism" onchange="S.req.n['${k}'].min=num(this.value)||0"></div><div><span>Máx</span><br><input type="number" step="0.01" value="${r.max}" class="ism" onchange="S.req.n['${k}'].max=num(this.value)||0"></div></div></div>`;});
-h+=`</div></div>`;$('p-reqs').innerHTML=h;}
-function applyPre(){const s=$('pS').value;if(s==='__c'){S.aPre='';return;}const p=S.presets[s];if(!p)return;S.aPre=s;S.req={cms:p.cms,n:JSON.parse(JSON.stringify(p.n))};S.nuts.forEach(n=>{if(n.key.toUpperCase()!=='MS'&&n.key.toUpperCase()!=='MM'&&p.n&&p.n[n.key])n.enabled=true;});rkf().forEach(k=>{if(!S.req.n[k])S.req.n[k]={min:0,max:9999};});rReqs();}
+function syncReqChange(){
+  if(S.aPre && S.presets[S.aPre]){
+    S.presets[S.aPre].cms = S.req.cms;
+    S.presets[S.aPre].n = JSON.parse(JSON.stringify(S.req.n));
+  }
+  scheduleAutoSaveDb();
+}
+
+function rReqs(){
+  const keys=rkf();
+  let h=`<h2 class="st">Exigências Nutricionais</h2><div class="cd"><div class="fb"><div><label class="tl">Perfil de Exigência (Banco: ${S.activeDbProfileName || 'Padrão'})</label><select id="pS" onchange="applyPre()" style="min-width:240px;padding:6px;font-size:11px;font-family:var(--ff)">`;
+  Object.keys(S.presets).forEach(k=>{h+=`<option value="${k}" ${k===S.aPre?'selected':''}>${k}</option>`;});
+  h+=`<option value="__c" ${!S.aPre?'selected':''}>— Personalizado —</option></select></div><div class="fg"><button class="btn bs" onclick="modAddPre()">+ Novo</button><button class="btn bs" onclick="modEditPre()">✏️</button><button class="btn bd" onclick="delPre()">🗑️</button></div></div></div>`;
+  h+=`<div class="cd"><h3 class="ss">CMS</h3><div class="fc"><label style="font-size:11px;font-weight:600">kg MS/dia:</label><input type="number" step="0.1" value="${S.req.cms}" class="ism" onchange="S.req.cms=num(this.value)||0;syncReqChange();"></div></div>`;
+  h+=`<div class="cd"><h3 class="ss">Limites Nutricionais</h3><div class="gr">`;
+  keys.forEach(k=>{
+    const n=S.nuts.find(x=>x.key===k);
+    const r=S.req.n[k]||{min:0,max:9999};
+    h+=`<div class="rb"><div class="rh"><label>${n?n.desc+' ('+n.unit+')':k}</label><button class="b-open" onclick="S.req.n['${k}']={min:0,max:9999};syncReqChange();rReqs();">EM ABERTO</button></div><div class="rr"><div><span>Mín</span><br><input type="number" step="0.01" value="${r.min}" class="ism" onchange="S.req.n['${k}'].min=num(this.value)||0;syncReqChange();"></div><div><span>Máx</span><br><input type="number" step="0.01" value="${r.max}" class="ism" onchange="S.req.n['${k}'].max=num(this.value)||0;syncReqChange();"></div></div></div>`;
+  });
+  h+=`</div></div>`;
+  $('p-reqs').innerHTML=h;
+}
+
+function applyPre(){
+  const s=$('pS').value;
+  if(s==='__c'){S.aPre='';scheduleAutoSaveDb();return;}
+  const p=S.presets[s];if(!p)return;
+  S.aPre=s;
+  S.req={cms:p.cms,n:JSON.parse(JSON.stringify(p.n))};
+  S.nuts.forEach(n=>{if(n.key.toUpperCase()!=='MS'&&n.key.toUpperCase()!=='MM'&&p.n&&p.n[n.key])n.enabled=true;});
+  rkf().forEach(k=>{if(!S.req.n[k])S.req.n[k]={min:0,max:9999};});
+  scheduleAutoSaveDb();
+  rReqs();
+}
+
 function modAddPre(){openMod(`<h3>Novo Perfil</h3><div><label class="tl">Nome</label><input type="text" id="np_n" class="ilg"></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doAddPre()">Criar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`);}
-function doAddPre(){const nm=$('np_n').value.trim();if(!nm||S.presets[nm])return nAlert('Nome inválido ou já existe.');S.presets[nm]={cms:S.req.cms,n:JSON.parse(JSON.stringify(S.req.n))};S.aPre=nm;closeMod();rReqs();}
+
+async function doAddPre(){
+  const nm=$('np_n').value.trim();
+  if(!nm||S.presets[nm])return nAlert('Nome inválido ou já existe.');
+  S.presets[nm]={cms:S.req.cms,n:JSON.parse(JSON.stringify(S.req.n))};
+  S.aPre=nm;
+  closeMod();
+  rReqs();
+  if(typeof autoSaveDbProfileImmediately==='function') await autoSaveDbProfileImmediately();
+  nAlert('✅ Perfil de exigência "' + nm + '" salvo no banco de dados!');
+}
+
 function modEditPre(){if(!S.aPre)return;openMod(`<h3>Editar Perfil</h3><div><label class="tl">Nome</label><input type="text" id="ep_n" value="${S.aPre}" class="ilg"></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doEditPre()">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`);}
-function doEditPre(){const old=S.aPre,nw=$('ep_n').value.trim();if(!nw)return;if(nw!==old){if(S.presets[nw])return nAlert('Já existe.');delete S.presets[old];}S.presets[nw]={cms:S.req.cms,n:JSON.parse(JSON.stringify(S.req.n))};S.aPre=nw;closeMod();rReqs();}
-async function delPre(){if(!S.aPre||!(await nConfirm('Excluir perfil?')))return;delete S.presets[S.aPre];const k=Object.keys(S.presets);S.aPre=k[0]||'';if(S.aPre)applyPre();rReqs();}
+
+async function doEditPre(){
+  const old=S.aPre,nw=$('ep_n').value.trim();
+  if(!nw)return;
+  if(nw!==old){
+    if(S.presets[nw])return nAlert('Já existe um perfil com esse nome.');
+    delete S.presets[old];
+  }
+  S.presets[nw]={cms:S.req.cms,n:JSON.parse(JSON.stringify(S.req.n))};
+  S.aPre=nw;
+  closeMod();
+  rReqs();
+  if(typeof autoSaveDbProfileImmediately==='function') await autoSaveDbProfileImmediately();
+  nAlert('✅ Perfil de exigência atualizado e salvo no banco de dados!');
+}
+
+async function delPre(){
+  if(!S.aPre||!(await nConfirm('Excluir perfil "' + S.aPre + '"?')))return;
+  delete S.presets[S.aPre];
+  const k=Object.keys(S.presets);
+  S.aPre=k[0]||'';
+  if(S.aPre)applyPre();
+  else rReqs();
+  if(typeof autoSaveDbProfileImmediately==='function') await autoSaveDbProfileImmediately();
+  nAlert('Perfil de exigência excluído.');
+}
 
 // ══════════ OPTIMIZER TAB ══════════
 function rOpt(){const fl=selfn();let h=`<h2 class="st">Formulação por Custo Mínimo</h2>`;
@@ -760,6 +1614,7 @@ $('landing').style.display='none';$('app').classList.add('on');goTab('feeds');rF
 const HAS_API = typeof window.api !== 'undefined';
 console.log('Electron API available:', HAS_API);
 
+(function() {
 if (HAS_API) {
 
   // ── SAVE DIET (from Optimization) ──
@@ -901,7 +1756,7 @@ if (HAS_API) {
   doAddFeed = async function() {
     var nm = $('nf_n').value.trim();
     if (!nm) return nAlert('Nome obrigatório.');
-    var f = { id: Date.now() + Math.floor(Math.random()*1000), name: nm, custoKg: parseFloat($('nf_c').value) || 0, _custom: true };
+    var f = { id: Date.now() + Math.floor(Math.random()*1000), name: nm, tipo: $('nf_tipo')?.value || '', custoKg: parseFloat($('nf_c').value) || 0, _custom: true };
     ank().forEach(function(k) { f[k] = parseFloat($('nf_' + k).value) || 0; });
     S.feeds.push(f);
     try {
@@ -911,19 +1766,25 @@ if (HAS_API) {
       f._dbId = dbId;
     } catch(e) { console.error(e); }
     closeMod(); rFeeds();
+    if (typeof autoSaveDbProfileImmediately === 'function') autoSaveDbProfileImmediately();
   };
 
   // ── FOOTER ──
   updFt = function() {
     var ft = document.querySelector('.ft');
     if (!ft) return;
-    ft.innerHTML = '💾 Dados salvos automaticamente • Nutricalc • Criador: José C. Arevalo Jr. • Colaboradores: Luiz G. S. Maistro, Felipe P. Souza, Marcelo A. Silva, Marcos A. A. Silva, Petrônio P. Porto, Simone F. N. Pertile';
+    ft.innerHTML = '💾 Dados salvos automaticamente no banco: <strong>' + (S.activeDbProfileName || 'Padrão') + '</strong> • Nutricalc';
   };
 
-  // ── CUSTOM FEEDS ON INIT ──
+  // ── CUSTOM FEEDS & DB PROFILES ON INIT ──
   var _baseInit = initSpecies;
   initSpecies = async function(sp) {
     _baseInit(sp);
+    try {
+      if (typeof initDbProfilesForSpecies === 'function') {
+        await initDbProfilesForSpecies(sp);
+      }
+    } catch(e) { console.error('initDbProfiles error:', e); }
     try {
       var rumIds = ['bovcorte','bovleite','ovinos','caprinos'];
       var feedSpId = rumIds.indexOf(sp) >= 0 ? 'ruminantes' : sp;
@@ -931,7 +1792,6 @@ if (HAS_API) {
       if (customs && customs.length) {
         customs.forEach(function(cf) {
           if (!S.feeds.find(function(f){return f.name===cf.name;})) {
-            // Ensure unique id and mark as custom
             if (!cf.id || S.feeds.find(function(f){return f.id===cf.id;})) {
               cf.id = Date.now() + Math.floor(Math.random()*10000) + (cf._dbId||0);
             }
@@ -939,12 +1799,12 @@ if (HAS_API) {
             S.feeds.push(cf);
           }
         });
-        rFeeds();
       }
     } catch(e) { console.error(e); }
+    rFeeds();
     updFt();
   };
-
+}
 })();
 
 // ══════════ CHECK FOR UPDATES (global) ══════════

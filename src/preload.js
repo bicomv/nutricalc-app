@@ -18,4 +18,15 @@ contextBridge.exposeInMainWorld('api', {
   importJSON: () => ipcRenderer.invoke('dialog-open-json'),
   // Updates
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  // CQBAL PDF
+  openCqbalPdf: () => ipcRenderer.invoke('dialog-open-cqbal-pdf'),
+  parseCqbalBuffer: (base64, name) => ipcRenderer.invoke('parse-cqbal-buffer', base64, name),
+  // Database Profiles (Múltiplos Bancos de Dados)
+  getDbProfiles: (spId) => ipcRenderer.invoke('db-get-profiles', spId),
+  saveDbProfile: (p) => ipcRenderer.invoke('db-save-profile', p),
+  updateDbProfile: (id, p) => ipcRenderer.invoke('db-update-profile', id, p),
+  setActiveDbProfile: (id, spId) => ipcRenderer.invoke('db-set-active-profile', id, spId),
+  deleteDbProfile: (id) => ipcRenderer.invoke('db-delete-profile', id),
+  exportDbProfile: (data, name) => ipcRenderer.invoke('dialog-export-profile', data, name),
+  importDbProfile: () => ipcRenderer.invoke('dialog-import-profile'),
 });
