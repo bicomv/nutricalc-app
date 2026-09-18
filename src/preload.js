@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('api', {
   // CQBAL PDF
   openCqbalPdf: () => ipcRenderer.invoke('dialog-open-cqbal-pdf'),
   parseCqbalBuffer: (base64, name) => ipcRenderer.invoke('parse-cqbal-buffer', base64, name),
+  parseCqbalUrl: (url) => ipcRenderer.invoke('parse-cqbal-url', url),
   // Database Profiles (Múltiplos Bancos de Dados)
   getDbProfiles: (spId) => ipcRenderer.invoke('db-get-profiles', spId),
   saveDbProfile: (p) => ipcRenderer.invoke('db-save-profile', p),

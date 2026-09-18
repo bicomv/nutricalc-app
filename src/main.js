@@ -4,7 +4,7 @@ const path = require('path');
 const Database = require('better-sqlite3');
 const fs = require('fs');
 const pdf = require('pdf-parse');
-const { parseCQBALText, parseCQBALBuffer } = require('./cqbal-parser');
+const { parseCQBALText, parseCQBALBuffer, parseCQBALUrl } = require('./cqbal-parser');
 const { parseCQBALViaOCR } = require('./cqbal-ocr');
 
 // Relatórios do CQBAL têm layouts diferentes por categoria; a extração
@@ -278,6 +278,16 @@ function setupIPC() {
       }
     }
     return results;
+  });
+
+  // Importa alimento a partir do LINK do relatório do CQBAL (dados já vêm
+  // estruturados no próprio link — muito mais confiável que PDF/OCR).
+  ipcMain.handle('parse-cqbal-url', (_, url) => {
+    try {
+      return parseCQBALUrl(url);
+    } catch (err) {
+      return { error: err.message };
+    }
   });
 
   ipcMain.handle('parse-cqbal-buffer', async (_, base64Data, fileName) => {

@@ -167,11 +167,17 @@ function parseCQBALText(text, fileName = '') {
   });
 
   result.nutrientesBrutos = found;
+  result.alimentoNutricalc = mapFoundToAlimento(found, result.nome, result.tipo);
+  return result;
+}
 
-  // 5. Determinação do NDT
-  // O valor de referência do CQBAL para o Nutricalc é o "NDT OBS" (observado),
-  // então ele tem prioridade sobre os NDT calculados por modelos
-  // (BRCORTE/NRC), que só entram quando o observado não está disponível.
+// Converte o mapa de nutrientes brutos (chaves no padrão do CQBAL, ex.: 'MS',
+// 'PB', 'NDT OBS', 'P', 'I', 'Mn', 'Ca'...) para o formato do banco do
+// Nutricalc. Compartilhado pela extração de texto/OCR e pela importação por
+// link (parseCQBALUrl), garantindo o mesmo mapeamento em todos os caminhos.
+function mapFoundToAlimento(found, nome, tipo) {
+  // NDT: prioriza o "NDT OBS" (observado); só usa os calculados por modelo
+  // (BRCORTE/NRC) quando o observado não está disponível.
   let ndtFinal = 0;
   if (found['NDT OBS'] !== undefined) ndtFinal = found['NDT OBS'];
   else if (found['NDT_BRCORTE2016'] !== undefined) ndtFinal = found['NDT_BRCORTE2016'];
@@ -180,10 +186,9 @@ function parseCQBALText(text, fileName = '') {
   else if (found['NDTGCv_BRCORTE2010'] !== undefined) ndtFinal = found['NDTGCv_BRCORTE2010'];
   else if (found['NDTGCm_BRCORTE2010'] !== undefined) ndtFinal = found['NDTGCm_BRCORTE2010'];
   else if (found['NDTGLm_BRCORTE2010'] !== undefined) ndtFinal = found['NDTGLm_BRCORTE2010'];
-  else if (found['NDT OBS'] !== undefined) ndtFinal = found['NDT OBS'];
   else if (found['NDT'] !== undefined) ndtFinal = found['NDT'];
 
-  // 6. Determinação de Proteína Degradável / Solúvel (dpb / pdr)
+  // Proteína Degradável / Solúvel (dpb / pdr)
   let dpbFinal = 0;
   if (found['SOLP/PB'] !== undefined) dpbFinal = found['SOLP/PB'];
   else if (found['PDR/PB'] !== undefined) dpbFinal = found['PDR/PB'];
@@ -191,17 +196,15 @@ function parseCQBALText(text, fileName = '') {
     dpbFinal = parseFloat(((found['PDR/MS'] / found['PB']) * 100).toFixed(2));
   }
 
-  // 7. Mapear para o formato do banco de dados do Nutricalc
-  // Campos abaixo são sempre percentuais da MS (0-100). O OCR usado no
-  // fallback via imagem (ver cqbal-ocr.js) ocasionalmente perde o ponto
-  // decimal de um valor (ex.: "8.05" vira "805"), o que sempre resulta em um
-  // número 100x maior que o real — como esses campos não podem passar de
-  // 100, isso é detectável e corrigível com segurança.
+  // Campos percentuais (0-100). O OCR às vezes perde o ponto decimal (ex.:
+  // "8.05" vira "805"), gerando um valor 100x maior — como não passam de 100,
+  // isso é detectável e corrigível. Não se aplica a minerais (ppm/valores > 100
+  // legítimos), por isso eles entram sem o ajuste.
   const pct = v => (v !== undefined && v > 100) ? v / 100 : (v || 0);
 
-  result.alimentoNutricalc = {
-    name: result.nome,
-    tipo: result.tipo,
+  return {
+    name: nome,
+    tipo: tipo,
     custoKg: 0,
     ms: pct(found['MS']),
     ndt: pct(ndtFinal),
@@ -228,7 +231,65 @@ function parseCQBALText(text, fileName = '') {
     co: found['Co'] || 0,
     se: found['Se'] || 0
   };
+}
 
+// Título amigável: "MILHO GRÃO MOÍDO" -> "Milho Grão Moído"
+function titleCasePt(s) {
+  return String(s || '').toLowerCase().replace(/\b([a-zà-ú])([a-zà-ú]*)/gi,
+    (m, a, b) => a.toUpperCase() + b);
+}
+
+// Importa um alimento a partir do LINK do relatório do CQBAL
+// (https://www.cqbal.com.br/#!/gerarelatorio/?data=<base64 JSON>). O próprio
+// link já carrega todos os nutrientes de forma estruturada — muito mais
+// confiável que ler o PDF/OCR. Aceita a URL inteira ou só o valor de "data".
+function parseCQBALUrl(url) {
+  if (!url || typeof url !== 'string') throw new Error('Link vazio.');
+  let raw = url.trim();
+  const m = raw.match(/[?&#]data=([^&#\s]+)/) || (!/[{}\s]/.test(raw) && !/^https?:/i.test(raw) ? [null, raw] : null);
+  if (!m) throw new Error('Link inválido: não encontrei o parâmetro "data=" do relatório do CQBAL.');
+  let b64 = decodeURIComponent(m[1]);
+  let json;
+  try {
+    // Os textos acentuados vêm em Latin-1 (ISO-8859-1) dentro do base64.
+    json = JSON.parse(Buffer.from(b64, 'base64').toString('latin1'));
+  } catch (e) {
+    try { json = JSON.parse(Buffer.from(b64, 'base64').toString('utf8')); }
+    catch (e2) { throw new Error('Não foi possível ler os dados do link (base64/JSON inválido).'); }
+  }
+
+  const found = {};
+  const add = (key, val) => {
+    if (key == null || val == null || val === '' || isNaN(val)) return;
+    const k = String(key).trim();
+    if (!k || found[k] !== undefined) return;
+    found[k] = Math.round(parseFloat(val) * 100) / 100;
+  };
+  const collect = (arr) => (Array.isArray(arr) ? arr : []).forEach(it => {
+    add(it.NUTRIENTE, it.media);
+    add(it.NUTRIENTE2, it.media2);
+  });
+  collect(json.lista);
+  collect(json.dadosCalculados);
+
+  const categoria = (json.titulo || '').toUpperCase();
+  let tipo = 'Concentrado';
+  if (/VOLUMOSO/.test(categoria)) tipo = 'Volumoso';
+  else if (/MINERA/.test(categoria)) tipo = 'Mineral';
+
+  const nomeBase = titleCasePt(json.subtitulo3 || json.subtitulo1 || json.subtitulo2 || 'Alimento CQBAL');
+  const nome = /cqbal/i.test(nomeBase) ? nomeBase : (nomeBase + ' (CQBAL)');
+
+  const result = {
+    categoria,
+    nome,
+    tipo,
+    viaUrl: true,
+    lowConfidence: false,
+    nutrientesBrutos: found,
+    fileName: nome
+  };
+  result.alimentoNutricalc = mapFoundToAlimento(found, nome, tipo);
   return result;
 }
 
@@ -445,6 +506,8 @@ async function parseCQBALBuffer(buf, fileName = '') {
 module.exports = {
   parseCQBALText,
   parseCQBALBuffer,
+  parseCQBALUrl,
+  mapFoundToAlimento,
   extractCqbalType3Data,
   isType3CQBAL,
   cleanNameFromFileName,
