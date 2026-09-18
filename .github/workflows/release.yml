@@ -45,3 +45,40 @@ jobs:
           npx electron-builder --linux --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Gera as release notes automaticamente a partir dos commits desde a tag
+  # anterior e atualiza o corpo do release (que o electron-builder cria vazio).
+  release-notes:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Montar e publicar as notas do release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -e
+          # Tag anterior (a partir do pai da tag atual), se existir
+          PREV=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo "")
+          if [ -n "$PREV" ]; then RANGE="${PREV}..${TAG}"; else RANGE="${TAG}"; fi
+          {
+            echo "## Nutricalc ${TAG}"
+            echo ""
+            echo "### Alterações"
+            git log --no-merges --pretty=format:'- %s' "$RANGE"
+            echo ""
+            echo ""
+            if [ -n "$PREV" ]; then
+              echo "**Changelog completo**: https://github.com/${REPO}/compare/${PREV}...${TAG}"
+            fi
+          } > notes.md
+          echo "----- notas geradas -----"; cat notes.md
+          gh release edit "$TAG" --notes-file notes.md
