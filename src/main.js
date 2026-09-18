@@ -3,51 +3,7 @@ const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const Database = require('better-sqlite3');
 const fs = require('fs');
-const pdf = require('pdf-parse');
-const { parseCQBALText, parseCQBALBuffer, parseCQBALUrl } = require('./cqbal-parser');
-const { parseCQBALViaOCR } = require('./cqbal-ocr');
-
-// Relatórios do CQBAL têm layouts diferentes por categoria; a extração
-// direta (fontes Type3 decodificadas / texto do PDF) funciona bem para
-// algumas categorias mas não para outras, e o fallback via OCR (lê a página
-// renderizada como imagem) tende a acertar campos diferentes. Quando a
-// extração direta não encontra os valores essenciais, tenta o OCR e combina
-// os dois resultados, preferindo os valores da extração direta (mais
-// precisos quando presentes) e completando o resto com o OCR.
-async function parseCqbalWithOcrFallback(buf, fileName) {
-  const primary = await parseCQBALBuffer(buf, fileName);
-  const alim = primary.alimentoNutricalc || {};
-  if (alim.ms > 0 && alim.pb > 0 && alim.ndt > 0) return primary;
-
-  let ocrResult;
-  try {
-    ocrResult = await parseCQBALViaOCR(buf, fileName);
-  } catch (err) {
-    console.warn('Fallback via OCR falhou:', err.message);
-    return primary;
-  }
-
-  const merged = { ...primary, alimentoNutricalc: { ...ocrResult.alimentoNutricalc } };
-  // Só sobrepõe com os valores do resultado "primário" quando ele não veio
-  // de texto embaralhado (fonte Type3 sem correspondência de layout): nesse
-  // caso os números que a regex "encontrou" são ruído, não dados reais, e
-  // devolveriam algo pior que o OCR sozinho.
-  if (!primary.lowConfidence) {
-    Object.keys(alim).forEach(k => {
-      if (typeof alim[k] === 'number' && alim[k] > 0) merged.alimentoNutricalc[k] = alim[k];
-    });
-  }
-  merged.nutrientesBrutos = { ...(ocrResult.nutrientesBrutos || {}), ...(!primary.lowConfidence ? (primary.nutrientesBrutos || {}) : {}) };
-  const primaryHasName = !primary.lowConfidence && primary.nome && !/^(Alimento CQBAL|Pesquisar)/i.test(primary.nome);
-  if (primaryHasName) {
-    merged.nome = primary.nome;
-    merged.alimentoNutricalc.name = primary.alimentoNutricalc.name;
-  } else {
-    merged.nome = ocrResult.nome;
-  }
-  if (!primary.lowConfidence && primary.categoria) merged.categoria = primary.categoria;
-  return merged;
-}
+const { parseCQBALUrl } = require('./cqbal-parser');
 
 let win, db, isQuitting = false;
 
@@ -240,6 +196,29 @@ function setupIPC() {
     }
   });
 
+  // Planilha modelo de alimentos (CSV): salvar o modelo em branco
+  ipcMain.handle('dialog-save-text', async (_, content, defaultName) => {
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      title: 'Salvar modelo de planilha',
+      defaultPath: defaultName || 'modelo.csv',
+      filters: [{ name: 'Planilha (CSV)', extensions: ['csv'] }]
+    });
+    if (canceled || !filePath) return false;
+    fs.writeFileSync(filePath, content, 'utf8');
+    return true;
+  });
+
+  // Abrir uma planilha (CSV) preenchida para importar alimentos
+  ipcMain.handle('dialog-open-text', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+      title: 'Selecionar planilha de alimentos',
+      filters: [{ name: 'Planilha (CSV)', extensions: ['csv', 'txt'] }],
+      properties: ['openFile']
+    });
+    if (canceled || !filePaths.length) return null;
+    return { name: path.basename(filePaths[0]), content: fs.readFileSync(filePaths[0], 'utf8') };
+  });
+
   // Import
   ipcMain.handle('dialog-open-json', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog(win, {
@@ -251,35 +230,6 @@ function setupIPC() {
     return JSON.parse(fs.readFileSync(filePaths[0], 'utf8'));
   });
 
-  // CQBAL PDF Import
-  ipcMain.handle('dialog-open-cqbal-pdf', async () => {
-    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
-      title: 'Selecionar PDF do CQBAL',
-      filters: [{ name: 'Relatório CQBAL (PDF)', extensions: ['pdf'] }],
-      properties: ['openFile', 'multiSelections']
-    });
-    if (canceled || !filePaths.length) return [];
-
-    const results = [];
-    for (const fp of filePaths) {
-      const fileName = path.basename(fp);
-      try {
-        const buf = fs.readFileSync(fp);
-        const parsed = await parseCqbalWithOcrFallback(buf, fileName);
-        parsed.filePath = fp;
-        results.push(parsed);
-      } catch (err) {
-        console.error('Erro ao ler PDF CQBAL:', fp, err);
-        const fallback = parseCQBALText('', fileName);
-        fallback.filePath = fp;
-        fallback.fileName = fileName;
-        fallback.warning = 'Texto do PDF não pôde ser extraído diretamente: ' + err.message;
-        results.push(fallback);
-      }
-    }
-    return results;
-  });
-
   // Importa alimento a partir do LINK do relatório do CQBAL (dados já vêm
   // estruturados no próprio link — muito mais confiável que PDF/OCR).
   ipcMain.handle('parse-cqbal-url', (_, url) => {
@@ -287,21 +237,6 @@ function setupIPC() {
       return parseCQBALUrl(url);
     } catch (err) {
       return { error: err.message };
-    }
-  });
-
-  ipcMain.handle('parse-cqbal-buffer', async (_, base64Data, fileName) => {
-    fileName = fileName || 'arquivo.pdf';
-    try {
-      const buf = Buffer.from(base64Data, 'base64');
-      const parsed = await parseCqbalWithOcrFallback(buf, fileName);
-      return parsed;
-    } catch (err) {
-      console.error('Erro ao processar buffer de PDF CQBAL:', err);
-      const fallback = parseCQBALText('', fileName);
-      fallback.fileName = fileName;
-      fallback.warning = 'Texto do PDF não pôde ser extraído diretamente: ' + err.message;
-      return fallback;
     }
   });
 }

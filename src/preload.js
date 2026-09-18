@@ -22,10 +22,11 @@ contextBridge.exposeInMainWorld('api', {
   // Fechamento: salvar a sessão antes de encerrar
   onAppWillClose: (cb) => ipcRenderer.on('app-will-close', () => cb()),
   confirmClose: () => ipcRenderer.invoke('confirm-close'),
-  // CQBAL PDF
-  openCqbalPdf: () => ipcRenderer.invoke('dialog-open-cqbal-pdf'),
-  parseCqbalBuffer: (base64, name) => ipcRenderer.invoke('parse-cqbal-buffer', base64, name),
+  // CQBAL (importação por link)
   parseCqbalUrl: (url) => ipcRenderer.invoke('parse-cqbal-url', url),
+  // Planilha de alimentos (modelo CSV / importação)
+  saveTextFile: (content, name) => ipcRenderer.invoke('dialog-save-text', content, name),
+  openTextFile: () => ipcRenderer.invoke('dialog-open-text'),
   // Database Profiles (Múltiplos Bancos de Dados)
   getDbProfiles: (spId) => ipcRenderer.invoke('db-get-profiles', spId),
   saveDbProfile: (p) => ipcRenderer.invoke('db-save-profile', p),
