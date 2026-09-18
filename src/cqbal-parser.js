@@ -147,12 +147,16 @@ function parseCQBALText(text, fileName = '') {
     const valuePattern = '(?:\\s*(?:[:=\\-]\\s*|\\(%\\)\\s*|\\s+)|(?=[0-9]))([0-9]+(?:[.,][0-9]{1,3})?)';
     // Prioriza a chave no início de uma "linha" (texto ou espaço antes dela),
     // que é o caso normal de uma tabela; só se nada for encontrado assim é
-    // que aceita a chave colada a um dígito (colunas sem separador, ex.
-    // "...1.3PB28.21..."). Nunca aceita precedida por letra ou por um
-    // separador de chave composta ("/" ou "-", como em "PIDA/MS"), para não
-    // confundir a chave "MS" isolada com a que aparece dentro de "PIDA/MS".
+    // que aceita a chave colada a um caractere não-letra (colunas sem
+    // separador, ex. "...1.3PB28.21..." ou a segunda coluna colada ao "-" da
+    // coluna anterior, ex. "Zn63.301-I0.101-"). Nunca aceita precedida por
+    // letra, por "_" ou por "/" (separador de chave composta como em
+    // "PIDA/MS"), para não confundir a chave "MS" isolada com a que aparece
+    // dentro de "PIDA/MS". O "-" NÃO é excluído: nos laudos do CQBAL ele é o
+    // valor da coluna "S" (desvio) quando ausente e antecede minerais reais
+    // (Ca, Na, Cu, I, Se...), que de outra forma seriam perdidos.
     const strictRe = new RegExp('(?:^|\\s)' + escaped + valuePattern, 'i');
-    const looseRe = new RegExp('(?:^|[^A-Za-z_\\/\\-])' + escaped + valuePattern, 'i');
+    const looseRe = new RegExp('(?:^|[^A-Za-z_\\/])' + escaped + valuePattern, 'i');
     const m = text.match(strictRe) || text.match(looseRe);
     if (m) {
       // Arredonda para 2 casas: evita que um dígito da coluna seguinte
@@ -165,8 +169,12 @@ function parseCQBALText(text, fileName = '') {
   result.nutrientesBrutos = found;
 
   // 5. Determinação do NDT
+  // O valor de referência do CQBAL para o Nutricalc é o "NDT OBS" (observado),
+  // então ele tem prioridade sobre os NDT calculados por modelos
+  // (BRCORTE/NRC), que só entram quando o observado não está disponível.
   let ndtFinal = 0;
-  if (found['NDT_BRCORTE2016'] !== undefined) ndtFinal = found['NDT_BRCORTE2016'];
+  if (found['NDT OBS'] !== undefined) ndtFinal = found['NDT OBS'];
+  else if (found['NDT_BRCORTE2016'] !== undefined) ndtFinal = found['NDT_BRCORTE2016'];
   else if (found['NDTm_NRC'] !== undefined) ndtFinal = found['NDTm_NRC'];
   else if (found['NDT_NRC'] !== undefined) ndtFinal = found['NDT_NRC'];
   else if (found['NDTGCv_BRCORTE2010'] !== undefined) ndtFinal = found['NDTGCv_BRCORTE2010'];

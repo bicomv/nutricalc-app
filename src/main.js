@@ -49,7 +49,7 @@ async function parseCqbalWithOcrFallback(buf, fileName) {
   return merged;
 }
 
-let win, db;
+let win, db, isQuitting = false;
 
 function initDB() {
   const dbPath = path.join(app.getPath('userData'), 'nutricalc.db');
@@ -219,6 +219,17 @@ function setupIPC() {
     return true;
   });
 
+  // Versão do app (lida do package.json em tempo de execução, para o app
+  // sempre exibir a versão realmente instalada em vez de um número fixo).
+  ipcMain.handle('get-app-version', () => app.getVersion());
+
+  // Fechar o app: o renderer confirma que já persistiu a sessão/dieta atual.
+  ipcMain.handle('confirm-close', () => {
+    isQuitting = true;
+    if (win) win.destroy();
+    return true;
+  });
+
   // Manual update check
   ipcMain.handle('check-for-updates', async () => {
     try {
@@ -293,6 +304,22 @@ function createWindow() {
   });
   win.setMenuBarVisibility(false);
   win.loadFile(path.join(__dirname, 'index.html'));
+
+  // Ao fechar, dá ao renderer a chance de salvar a dieta/sessão atual antes
+  // de encerrar. O renderer responde via IPC 'confirm-close' (que destrói a
+  // janela). Um timeout garante que o app feche mesmo se algo der errado.
+  win.on('close', (e) => {
+    if (isQuitting) return;
+    e.preventDefault();
+    try {
+      win.webContents.send('app-will-close');
+    } catch (err) {
+      isQuitting = true;
+      win.destroy();
+      return;
+    }
+    setTimeout(() => { isQuitting = true; if (win) win.destroy(); }, 4000);
+  });
 }
 
 function setupAutoUpdater() {
@@ -316,7 +343,7 @@ function setupAutoUpdater() {
         message: 'A nova versão foi baixada! Reinicie o aplicativo para aplicar as melhorias.',
         buttons: ['Reiniciar Agora', 'Mais Tarde']
       }).then(r => {
-        if (r.response === 0) autoUpdater.quitAndInstall();
+        if (r.response === 0) { isQuitting = true; autoUpdater.quitAndInstall(); }
       });
     }
   });

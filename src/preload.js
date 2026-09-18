@@ -16,8 +16,12 @@ contextBridge.exposeInMainWorld('api', {
   // Dialogs
   exportJSON: (data, name) => ipcRenderer.invoke('dialog-save-json', data, name),
   importJSON: () => ipcRenderer.invoke('dialog-open-json'),
-  // Updates
+  // Updates & versão
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  // Fechamento: salvar a sessão antes de encerrar
+  onAppWillClose: (cb) => ipcRenderer.on('app-will-close', () => cb()),
+  confirmClose: () => ipcRenderer.invoke('confirm-close'),
   // CQBAL PDF
   openCqbalPdf: () => ipcRenderer.invoke('dialog-open-cqbal-pdf'),
   parseCqbalBuffer: (base64, name) => ipcRenderer.invoke('parse-cqbal-buffer', base64, name),
