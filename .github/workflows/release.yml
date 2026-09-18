@@ -86,4 +86,7 @@ jobs:
             fi
           } > notes.md
           echo "----- notas geradas -----"; cat notes.md
-          gh release edit "$TAG" --notes-file notes.md
+          # Define as notas e PUBLICA o release (o electron-builder o cria como
+          # rascunho por padrão; sem isso, o release fica invisível e o
+          # auto-update dá 404).
+          gh release edit "$TAG" --notes-file notes.md --draft=false
