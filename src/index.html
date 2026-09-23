@@ -201,7 +201,7 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
   <div class="l-logo"><div class="l-logo-tile">N</div></div>
   <h1>Nutricalc</h1>
   <p class="sub">Sistema para cálculos de dieta para animais.</p>
-  <p id="appVer" style="font-size:11px;opacity:.55;margin:2px 0 12px;letter-spacing:1px">v4.3.0</p>
+  <p id="appVer" style="font-size:11px;opacity:.55;margin:2px 0 12px;letter-spacing:1px">v4.3.1</p>
   <div style="margin-bottom:18px"><button class="btn bs" style="background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.25);font-size:12px" onclick="checkAppUpdate()">🔄 Verificar Atualização</button></div>
   <div id="resumeCard" class="resume hid">
     <span class="r-ic">📋</span>
@@ -235,7 +235,7 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
   <aside class="side no-print">
     <div class="brand">
       <div class="brand-logo">N</div>
-      <div class="brand-txt"><h1>Nutricalc</h1><div class="brand-v" id="appVerSide">v4.3.0</div></div>
+      <div class="brand-txt"><h1>Nutricalc</h1><div class="brand-v" id="appVerSide">v4.3.1</div></div>
     </div>
     <div class="ctx">
       <div class="ctx-row"><img class="ctx-icon" id="hI" alt=""><span class="ctx-v" id="hB">—</span></div>
@@ -616,10 +616,34 @@ async function autoSaveDbProfileImmediately() {
   }
 }
 
+// Gera um id de alimento SEMPRE único (maior id existente + 1), evitando
+// colisões entre alimentos adicionados por link/planilha/manual e os
+// personalizados já carregados do banco (a causa do "clicou em 1, marcou 2").
+function newFeedId(){
+  let mx = (typeof S.nxId === 'number' && S.nxId > 0) ? S.nxId - 1 : 0;
+  for (const f of (S.feeds || [])) { const n = Number(f.id); if (!isNaN(n) && n > mx) mx = n; }
+  const id = mx + 1;
+  S.nxId = id + 1;
+  return id;
+}
+// Corrige ids duplicados nos alimentos (dados antigos salvos com colisão):
+// mantém o 1º com o id original e reatribui um id novo aos repetidos.
+function dedupeFeedIds(){
+  const seen = new Set();
+  let changed = false;
+  (S.feeds || []).forEach(f => {
+    let n = Number(f.id);
+    if (isNaN(n) || seen.has(n)) { n = newFeedId(); f.id = n; changed = true; }
+    seen.add(n);
+  });
+  return changed;
+}
+
 function loadDbProfileData(p, chosenPreset) {
   const d = p.data || {};
   if (Array.isArray(d.feeds) && d.feeds.length) {
     S.feeds = JSON.parse(JSON.stringify(d.feeds));
+    dedupeFeedIds();
   }
   if (Array.isArray(d.selectedIds)) {
     S.sel = [...d.selectedIds];
@@ -1024,7 +1048,7 @@ async function exportDbProfileUI(id) {
     const exportPayload = {
       app: 'Nutricalc',
       format: 'database_profile',
-      version: (window.APP_VERSION || '4.3.0'),
+      version: (window.APP_VERSION || '4.3.1'),
       species_id: S.sp,
       species_label: DB[S.sp]?.label || S.sp,
       profile_name: p.name,
@@ -1232,7 +1256,7 @@ async function delFeed(id){
 function modAddFeed(){let h=`<h3>Novo Alimento</h3><div class="ga"><div style="grid-column:1/-1"><label class="tl">Nome</label><input type="text" id="nf_n" class="ilg" placeholder="Ex: Soja (farelo)"></div><div style="grid-column:1/-1"><label class="tl">Tipo</label><select id="nf_tipo" class="ilg"><option value="">— selecione —</option><option value="Volumoso">Volumoso</option><option value="Concentrado">Concentrado</option><option value="Mineral">Mineral</option></select></div>`;ank().forEach(k=>{const n=S.nuts.find(x=>x.key===k);h+=`<div><label class="tl">${n?n.label:k}</label><input type="number" id="nf_${k}" value="0" step="0.01" class="ilg"></div>`;});h+=`<div><label class="tl">R$/kg MN</label><input type="number" id="nf_c" value="0" step="0.01" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doAddFeed()">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`;openMod(h);}
 function modEditFeed(id){const f=S.feeds.find(x=>x.id===id);if(!f)return;let h=`<h3>Editar: ${f.name}</h3><div class="ga"><div style="grid-column:1/-1"><label class="tl">Nome</label><input type="text" id="ef_n" class="ilg" value="${f.name||''}"></div><div style="grid-column:1/-1"><label class="tl">Tipo</label><select id="ef_tipo" class="ilg"><option value="">— selecione —</option><option value="Volumoso"${f.tipo==='Volumoso'?' selected':''}>Volumoso</option><option value="Concentrado"${f.tipo==='Concentrado'?' selected':''}>Concentrado</option><option value="Mineral"${f.tipo==='Mineral'?' selected':''}>Mineral</option></select></div>`;ank().forEach(k=>{const n=S.nuts.find(x=>x.key===k);h+=`<div><label class="tl">${n?n.label:k}</label><input type="number" id="ef_${k}" value="${f[k]||0}" step="0.01" class="ilg"></div>`;});h+=`<div><label class="tl">R$/kg MN</label><input type="number" id="ef_c" value="${f.custoKg||0}" step="0.01" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doEditFeed(${id})">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`;openMod(h);}
 async function doEditFeed(id){const f=S.feeds.find(x=>x.id===id);if(!f)return;const nm=$('ef_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');const _msEd=$('ef_ms')?num($('ef_ms').value):(f.ms||0);if(!(await validateFeedBeforeSave(_msEd,num($('ef_c').value),{msField:'ef_ms',priceField:'ef_c'})))return;f.name=nm;f.tipo=$('ef_tipo').value;f.custoKg=num($('ef_c').value)||0;ank().forEach(k=>{f[k]=num($('ef_'+k).value)||0;});if(f._dbId && typeof window.api!=='undefined'&&window.api.updateCustomFeed){try{await window.api.updateCustomFeed(f._dbId,f);}catch(e){console.error(e);}}closeMod();rFeeds();if(typeof autoSaveDbProfileImmediately==='function') autoSaveDbProfileImmediately();}
-async function doAddFeed(){const nm=$('nf_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');const f={id:S.nxId++,name:nm,tipo:$('nf_tipo').value||'',custoKg:num($('nf_c').value)||0};ank().forEach(k=>{f[k]=num($('nf_'+k).value)||0;});if(!(await validateFeedBeforeSave(f.ms,f.custoKg,{msField:'nf_ms',priceField:'nf_c'})))return;if(typeof window.api!=='undefined'&&window.api.saveCustomFeed){try{const dbId=await window.api.saveCustomFeed(S.sp,f);f._dbId=dbId;}catch(e){console.error(e);}}S.feeds.push(f);closeMod();rFeeds();if(typeof autoSaveDbProfileImmediately==='function') autoSaveDbProfileImmediately();}
+async function doAddFeed(){const nm=$('nf_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');const f={id:newFeedId(),name:nm,tipo:$('nf_tipo').value||'',custoKg:num($('nf_c').value)||0};ank().forEach(k=>{f[k]=num($('nf_'+k).value)||0;});if(!(await validateFeedBeforeSave(f.ms,f.custoKg,{msField:'nf_ms',priceField:'nf_c'})))return;if(typeof window.api!=='undefined'&&window.api.saveCustomFeed){try{const dbId=await window.api.saveCustomFeed(S.sp,f);f._dbId=dbId;}catch(e){console.error(e);}}S.feeds.push(f);closeMod();rFeeds();if(typeof autoSaveDbProfileImmediately==='function') autoSaveDbProfileImmediately();}
 
 async function loadCustomFeedsForSpecies(sp){
   if(typeof window.api==='undefined'||!window.api.getCustomFeeds)return;
@@ -1241,7 +1265,7 @@ async function loadCustomFeedsForSpecies(sp){
     if(list&&list.length){
       list.forEach(cf=>{
         if(!S.feeds.some(f=>(cf._dbId&&f._dbId===cf._dbId)||f.name===cf.name)){
-          cf.id=S.nxId++;
+          cf.id=newFeedId();
           S.feeds.push(cf);
         }
       });
@@ -1352,7 +1376,7 @@ async function importFeedsSheet(){
   if(!ok) return;
   let added=0;
   for(const f of toAdd){
-    f.id=Date.now()+Math.floor(Math.random()*100000);
+    f.id=newFeedId();
     f._custom=true;
     if(typeof window.api!=='undefined'&&window.api.saveCustomFeed){
       try{ f._dbId=await window.api.saveCustomFeed(feedSpId,f); }catch(e){ console.error('saveCustomFeed',e); }
@@ -1517,7 +1541,7 @@ function promptConfirmCqbalFeed(parsedItem){
       const nm = $('cq_n').value.trim();
       if (!nm) return nAlert('Nome do alimento é obrigatório.');
       const f = {
-        id: S.nxId++,
+        id: newFeedId(),
         name: nm,
         tipo: $('cq_tipo').value || 'Concentrado',
         custoKg: num($('cq_c').value) || 0
@@ -2005,7 +2029,7 @@ if (HAS_API) {
   doAddFeed = async function() {
     var nm = $('nf_n').value.trim();
     if (!nm) return nAlert('Nome obrigatório.');
-    var f = { id: Date.now() + Math.floor(Math.random()*1000), name: nm, tipo: $('nf_tipo')?.value || '', custoKg: parseFloat($('nf_c').value) || 0, _custom: true };
+    var f = { id: newFeedId(), name: nm, tipo: $('nf_tipo')?.value || '', custoKg: parseFloat($('nf_c').value) || 0, _custom: true };
     ank().forEach(function(k) { f[k] = parseFloat($('nf_' + k).value) || 0; });
     if (!(await validateFeedBeforeSave(f.ms, f.custoKg, {msField:'nf_ms', priceField:'nf_c'}))) return;
     S.feeds.push(f);
@@ -2043,13 +2067,15 @@ if (HAS_API) {
         customs.forEach(function(cf) {
           if (!S.feeds.find(function(f){return f.name===cf.name;})) {
             if (!cf.id || S.feeds.find(function(f){return f.id===cf.id;})) {
-              cf.id = Date.now() + Math.floor(Math.random()*10000) + (cf._dbId||0);
+              cf.id = newFeedId();
             }
             cf._custom = true;
             S.feeds.push(cf);
           }
         });
       }
+      var _ddChanged = (typeof dedupeFeedIds === 'function') ? dedupeFeedIds() : false;
+      if (_ddChanged && typeof autoSaveDbProfileImmediately === 'function') autoSaveDbProfileImmediately();
     } catch(e) { console.error(e); }
     rFeeds();
     updFt();
@@ -2150,7 +2176,7 @@ async function saveCurrentDiet(){
 // ══════════ BOOTSTRAP (versão, fechar-salvando, restaurar sessão) ══════════
 (async function bootstrap(){
   // Versão exibida = versão realmente instalada (lida do package.json).
-  let v='4.3.0';
+  let v='4.3.1';
   try{ if(typeof window.api!=='undefined' && window.api.getAppVersion){ v=(await window.api.getAppVersion())||v; } }catch(e){}
   window.APP_VERSION=v;
   const ve=$('appVer'); if(ve) ve.textContent='v'+v;
