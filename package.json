@@ -1,6 +1,6 @@
 {
   "name": "nutricalc",
-  "version": "4.3.1",
+  "version": "4.3.2",
   "description": "Nutricalc — Formulação de Dietas na Nutrição Animal",
   "main": "src/main.js",
   "scripts": {
@@ -34,7 +34,7 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "differentialPackage": false,
+      "differentialPackage": true,
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico"
     },
