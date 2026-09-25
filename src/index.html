@@ -207,7 +207,7 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
   <div class="l-logo"><div class="l-logo-tile">N</div></div>
   <h1>Nutricalc</h1>
   <p class="sub">Sistema para cálculos de dieta para animais.</p>
-  <p id="appVer" style="font-size:11px;opacity:.55;margin:2px 0 12px;letter-spacing:1px">v4.4.1</p>
+  <p id="appVer" style="font-size:11px;opacity:.55;margin:2px 0 12px;letter-spacing:1px">v4.4.2</p>
   <div style="margin-bottom:18px"><button class="btn bs" style="background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.25);font-size:12px" onclick="checkAppUpdate()">🔄 Verificar Atualização</button></div>
   <div id="resumeCard" class="resume hid">
     <span class="r-ic">📋</span>
@@ -241,7 +241,7 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
   <aside class="side no-print">
     <div class="brand">
       <div class="brand-logo">N</div>
-      <div class="brand-txt"><h1>Nutricalc</h1><div class="brand-v" id="appVerSide">v4.4.1</div></div>
+      <div class="brand-txt"><h1>Nutricalc</h1><div class="brand-v" id="appVerSide">v4.4.2</div></div>
     </div>
     <div class="ctx">
       <div class="ctx-row"><img class="ctx-icon" id="hI" alt=""><span class="ctx-v" id="hB">—</span></div>
@@ -1109,7 +1109,7 @@ async function exportDbProfileUI(id) {
     const exportPayload = {
       app: 'Nutricalc',
       format: 'database_profile',
-      version: (window.APP_VERSION || '4.4.1'),
+      version: (window.APP_VERSION || '4.4.2'),
       species_id: S.sp,
       species_label: DB[S.sp]?.label || S.sp,
       profile_name: p.name,
@@ -1299,8 +1299,9 @@ function rFeeds(){
   h+=`<div class="dd-i" onclick="closeMenus();importFeedsSheet()"><span class="dd-ic">📊</span><div><div class="dd-nm">Importar planilha</div><div class="dd-ds">Sobe um CSV preenchido com vários alimentos</div></div></div>`;
   h+=`<div class="dd-sep"></div>`;
   h+=`<div class="dd-i" onclick="closeMenus();downloadFeedTemplate()"><span class="dd-ic">📥</span><div><div class="dd-nm">Baixar modelo de planilha</div><div class="dd-ds">Gera o CSV com as colunas certas</div></div></div>`;
-  h+=`<div class="dd-i" onclick="closeMenus();exportFeedsSheet()"><span class="dd-ic">📤</span><div><div class="dd-nm">Exportar planilha (${S.sel.length} selecionado${S.sel.length===1?'':'s'})</div><div class="dd-ds">Salva os alimentos marcados no mesmo formato do modelo</div></div></div>`;
-  h+=`</div></span></div></div>`;
+  h+=`</div></span>`;
+  h+=`<button class="btn bs" onclick="exportFeedsSheet()" title="Exportar os alimentos marcados para uma planilha CSV">📤 Exportar planilha (${S.sel.length})</button>`;
+  h+=`</div></div>`;
   
   if(!fl.length){
     if(S.onlySelected && !S.sel.length){
@@ -2318,7 +2319,7 @@ async function saveCurrentDiet(){
 // ══════════ BOOTSTRAP (versão, fechar-salvando, restaurar sessão) ══════════
 (async function bootstrap(){
   // Versão exibida = versão realmente instalada (lida do package.json).
-  let v='4.4.1';
+  let v='4.4.2';
   try{ if(typeof window.api!=='undefined' && window.api.getAppVersion){ v=(await window.api.getAppVersion())||v; } }catch(e){}
   window.APP_VERSION=v;
   const ve=$('appVer'); if(ve) ve.textContent='v'+v;
