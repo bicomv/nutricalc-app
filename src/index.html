@@ -175,6 +175,11 @@ input[type="checkbox"]{width:14px;height:14px;accent-color:var(--p);cursor:point
 .dd-nm{font-size:12.5px;font-weight:700;color:var(--tx);}
 .dd-ds{font-size:10px;color:var(--c5);margin-top:1px;line-height:1.3;}
 .dd-sep{height:1px;background:var(--c2);margin:4px 6px;}
+/* ZOOM (canto inferior direito) */
+.zoomctl{position:fixed;right:14px;bottom:14px;z-index:900;display:flex;align-items:center;gap:2px;background:var(--c0);border:1px solid var(--c3);border-radius:22px;box-shadow:0 4px 16px rgba(0,0,0,.16);padding:3px;}
+.zoomctl button{border:none;background:0;cursor:pointer;font-family:var(--ff);color:var(--p);font-weight:700;border-radius:50%;width:30px;height:30px;font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center;}
+.zoomctl button:hover{background:var(--c2);}
+.zoomctl #zoomLbl{width:auto;padding:0 8px;border-radius:14px;font-size:11px;font-family:var(--fm);font-weight:600;}
 
 /* DIET LIST */
 .diet-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--c0);border:1px solid var(--c3);border-radius:8px;margin-bottom:6px;}
@@ -201,7 +206,7 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
   <div class="l-logo"><div class="l-logo-tile">N</div></div>
   <h1>Nutricalc</h1>
   <p class="sub">Sistema para cálculos de dieta para animais.</p>
-  <p id="appVer" style="font-size:11px;opacity:.55;margin:2px 0 12px;letter-spacing:1px">v4.3.2</p>
+  <p id="appVer" style="font-size:11px;opacity:.55;margin:2px 0 12px;letter-spacing:1px">v4.4.0</p>
   <div style="margin-bottom:18px"><button class="btn bs" style="background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.25);font-size:12px" onclick="checkAppUpdate()">🔄 Verificar Atualização</button></div>
   <div id="resumeCard" class="resume hid">
     <span class="r-ic">📋</span>
@@ -235,7 +240,7 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
   <aside class="side no-print">
     <div class="brand">
       <div class="brand-logo">N</div>
-      <div class="brand-txt"><h1>Nutricalc</h1><div class="brand-v" id="appVerSide">v4.3.2</div></div>
+      <div class="brand-txt"><h1>Nutricalc</h1><div class="brand-v" id="appVerSide">v4.4.0</div></div>
     </div>
     <div class="ctx">
       <div class="ctx-row"><img class="ctx-icon" id="hI" alt=""><span class="ctx-v" id="hB">—</span></div>
@@ -265,8 +270,13 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
       <div class="saved" id="savedPill"><span class="pulse"></span>Salvo automaticamente</div>
       <div class="acts">
         <button class="btn bp" onclick="saveCurrentDiet()" title="Salvar a dieta atual (carregue, renomeie ou exclua na aba Dietas)">💾 Salvar dieta</button>
-        <button class="btn bs" onclick="exportJSON()">📤 Exportar</button>
-        <button class="btn bs" onclick="onImportJSON()">📥 Importar</button>
+        <span class="dd">
+          <button class="btn bs" onclick="toggleMenu(event,'backupMenu')" title="Backup completo (dietas + alimentos)">🗄️ Backup <span style="opacity:.6">▾</span></button>
+          <div id="backupMenu" class="dd-menu hid">
+            <div class="dd-i" onclick="closeMenus();exportJSON()"><span class="dd-ic">📤</span><div><div class="dd-nm">Exportar backup</div><div class="dd-ds">Salva um arquivo com dietas e alimentos</div></div></div>
+            <div class="dd-i" onclick="closeMenus();onImportJSON()"><span class="dd-ic">📥</span><div><div class="dd-nm">Importar backup</div><div class="dd-ds">Restaura de um arquivo de backup exportado</div></div></div>
+          </div>
+        </span>
         <input type="file" id="jsonFileInput" accept=".json,application/json" style="display:none" onchange="importJSON(event)">
         <button class="btn bs" onclick="goHome()" title="Tela inicial">🏠</button>
       </div>
@@ -285,6 +295,11 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
       <div id="p-diets" class="pn"></div>
     </div>
     <div class="ft no-print">Nutricalc • Criador: José C. Arevalo Jr. (jcarevalojr@gmail.com) • Colaboradores: Luiz G. S. Maistro, Felipe P. Souza, Marcelo A. Silva, Marcos A. A. Silva, Petrônio P. Porto, Simone F. N. Pertile</div>
+  </div>
+  <div id="zoomCtl" class="zoomctl no-print">
+    <button onclick="appZoom(-1)" title="Diminuir zoom">−</button>
+    <button id="zoomLbl" onclick="appZoom(0)" title="Restaurar zoom (100%)">100%</button>
+    <button onclick="appZoom(1)" title="Aumentar zoom">+</button>
   </div>
 </div>
 
@@ -330,6 +345,7 @@ function badge(v,mn,mx){const val=Math.round(num(v)*100)/100;const okMn=mn==null
 const RNUT=[
   {key:'ms',label:'MS (%)',unit:'%',desc:'Matéria Seca'},{key:'ndt',label:'NDT (%MS)',unit:'%MS',desc:'Nutrientes Digestíveis Totais'},
   {key:'pb',label:'PB (%MS)',unit:'%MS',desc:'Proteína Bruta'},{key:'dpb',label:'Degr. PB (%)',unit:'%',desc:'Degradabilidade da PB (PDR = PB × DPB/100)'},
+  {key:'pdr',label:'PDR (%MS)',unit:'%MS',desc:'Proteína Degradável no Rúmen (PB × DPB/100) — calculado automático; editável se não houver DPB'},
   {key:'ee',label:'EE (%MS)',unit:'%MS',desc:'Extrato Etéreo'},{key:'fdn',label:'FDN (%MS)',unit:'%MS',desc:'Fibra em Detergente Neutro'},
   {key:'vita',label:'U.I. Vit.A (por kg)',unit:'UI/kg',desc:'Vitamina A'},
   {key:'ca',label:'Ca (%)',unit:'%',desc:'Cálcio'},{key:'p',label:'P (%)',unit:'%',desc:'Fósforo'},
@@ -561,6 +577,7 @@ function initSpecies(sp){
   document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('on',i===0));
   document.querySelectorAll('.pn').forEach((p,i)=>p.classList.toggle('on',i===0));rInfo();
   if(typeof setTopTitle==='function')setTopTitle('info');
+  ensurePdr();
   loadCustomFeedsForSpecies(sp);}
 async function goHome(){
   if(S.sp && S.dirty){
@@ -639,6 +656,26 @@ function dedupeFeedIds(){
   return changed;
 }
 
+// PDR (Proteína Degradável no Rúmen) = PB × DPB/100. Recalcula quando há DPB
+// (>0); sem DPB, mantém o valor atual (editável manualmente).
+function recalcFeedPdr(f){
+  if(!f) return;
+  const dpb=num(f.dpb);
+  if(dpb>0){ f.pdr=Math.round((num(f.pb)*dpb/100)*100)/100; }
+  else if(f.pdr==null){ f.pdr=0; }
+}
+// Garante o nutriente 'pdr' (ruminantes) e recalcula em todos os alimentos.
+function ensurePdr(){
+  const isRum = (typeof DB!=='undefined' && DB[S.sp] && DB[S.sp].rum);
+  if(!isRum) return;
+  if(Array.isArray(S.nuts) && !S.nuts.some(n=>n.key==='pdr')){
+    const i=S.nuts.findIndex(n=>n.key==='dpb');
+    const nut={key:'pdr',label:'PDR (%MS)',unit:'%MS',desc:'Proteína Degradável no Rúmen (PB × DPB/100) — automático; editável se não houver DPB'};
+    if(i>=0) S.nuts.splice(i+1,0,nut); else S.nuts.push(nut);
+  }
+  (S.feeds||[]).forEach(f=>{ if(f.pdr===undefined) f.pdr=0; recalcFeedPdr(f); });
+}
+
 function loadDbProfileData(p, chosenPreset) {
   const d = p.data || {};
   if (Array.isArray(d.feeds) && d.feeds.length) {
@@ -678,6 +715,7 @@ function loadDbProfileData(p, chosenPreset) {
   S.optR = null;
   S.mMS = {};
   S.mMN = {};
+  ensurePdr();
 }
 
 async function initDbProfilesForSpecies(sp) {
@@ -1048,7 +1086,7 @@ async function exportDbProfileUI(id) {
     const exportPayload = {
       app: 'Nutricalc',
       format: 'database_profile',
-      version: (window.APP_VERSION || '4.3.2'),
+      version: (window.APP_VERSION || '4.4.0'),
       species_id: S.sp,
       species_label: DB[S.sp]?.label || S.sp,
       profile_name: p.name,
@@ -1155,6 +1193,27 @@ function clearFeedSelection(){
 function toggleMenu(ev,id){ if(ev)ev.stopPropagation(); const m=document.getElementById(id); if(!m)return; const wasOpen=!m.classList.contains('hid'); closeMenus(); if(!wasOpen)m.classList.remove('hid'); }
 function closeMenus(){ document.querySelectorAll('.dd-menu').forEach(m=>m.classList.add('hid')); }
 document.addEventListener('click',()=>closeMenus());
+
+// PDR ao vivo nos formulários de alimento (nf_/ef_/cq_): recalcula ao digitar PB ou DPB.
+document.addEventListener('input',function(e){
+  const t=e.target; if(!t||!t.id) return;
+  const m=t.id.match(/^(nf|ef|cq)_(pb|dpb)$/); if(!m) return;
+  const pre=m[1], pbEl=$(pre+'_pb'), dpbEl=$(pre+'_dpb'), pdrEl=$(pre+'_pdr');
+  if(pbEl&&dpbEl&&pdrEl){ const dpb=num(dpbEl.value); if(dpb>0){ pdrEl.value=(num(pbEl.value)*dpb/100).toFixed(2); } }
+});
+// Campos numéricos (formulário de alimento e ajuste de preço): o "0" some ao
+// focar para digitar direto, e volta se o campo ficar vazio.
+function _zeroClearScope(t){ return t && t.tagName==='INPUT' && t.type==='number' && (t.closest('#mC')||t.closest('#p-prc')); }
+document.addEventListener('focusin',function(e){ if(_zeroClearScope(e.target)){ const v=e.target.value; if(v==='0'||v==='0.00'||v==='0,00') e.target.value=''; } });
+document.addEventListener('focusout',function(e){ if(_zeroClearScope(e.target) && e.target.value.trim()==='') e.target.value='0'; });
+
+// Zoom da interface (botões no canto inferior direito). Usa CSS zoom no body,
+// persistido em localStorage.
+let _appZoom=1;
+function applyAppZoom(){ try{document.body.style.zoom=_appZoom;}catch(e){} const l=$('zoomLbl'); if(l)l.textContent=Math.round(_appZoom*100)+'%'; try{localStorage.setItem('nutri_zoom',String(_appZoom));}catch(e){} }
+function appZoom(dir){ if(dir===0)_appZoom=1; else _appZoom=Math.min(1.6,Math.max(0.6,Math.round((_appZoom+dir*0.1)*10)/10)); applyAppZoom(); }
+try{ const _z=parseFloat(localStorage.getItem('nutri_zoom')); if(_z>=0.6&&_z<=1.6)_appZoom=_z; }catch(e){}
+if(document.readyState!=='loading') applyAppZoom(); else document.addEventListener('DOMContentLoaded',applyAppZoom);
 // Mostra uma mensagem/confirmação DENTRO do formulário aberto (sem substituir
 // o modal, para não perder os dados já digitados). insertAdjacentHTML preserva
 // os valores dos inputs existentes.
@@ -1255,8 +1314,8 @@ async function delFeed(id){
 }
 function modAddFeed(){let h=`<h3>Novo Alimento</h3><div class="ga"><div style="grid-column:1/-1"><label class="tl">Nome</label><input type="text" id="nf_n" class="ilg" placeholder="Ex: Soja (farelo)"></div><div style="grid-column:1/-1"><label class="tl">Tipo</label><select id="nf_tipo" class="ilg"><option value="">— selecione —</option><option value="Volumoso">Volumoso</option><option value="Concentrado">Concentrado</option><option value="Mineral">Mineral</option></select></div>`;ank().forEach(k=>{const n=S.nuts.find(x=>x.key===k);h+=`<div><label class="tl">${n?n.label:k}</label><input type="number" id="nf_${k}" value="0" step="0.01" class="ilg"></div>`;});h+=`<div><label class="tl">R$/kg MN</label><input type="number" id="nf_c" value="0" step="0.01" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doAddFeed()">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`;openMod(h);}
 function modEditFeed(id){const f=S.feeds.find(x=>x.id===id);if(!f)return;let h=`<h3>Editar: ${f.name}</h3><div class="ga"><div style="grid-column:1/-1"><label class="tl">Nome</label><input type="text" id="ef_n" class="ilg" value="${f.name||''}"></div><div style="grid-column:1/-1"><label class="tl">Tipo</label><select id="ef_tipo" class="ilg"><option value="">— selecione —</option><option value="Volumoso"${f.tipo==='Volumoso'?' selected':''}>Volumoso</option><option value="Concentrado"${f.tipo==='Concentrado'?' selected':''}>Concentrado</option><option value="Mineral"${f.tipo==='Mineral'?' selected':''}>Mineral</option></select></div>`;ank().forEach(k=>{const n=S.nuts.find(x=>x.key===k);h+=`<div><label class="tl">${n?n.label:k}</label><input type="number" id="ef_${k}" value="${f[k]||0}" step="0.01" class="ilg"></div>`;});h+=`<div><label class="tl">R$/kg MN</label><input type="number" id="ef_c" value="${f.custoKg||0}" step="0.01" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doEditFeed(${id})">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`;openMod(h);}
-async function doEditFeed(id){const f=S.feeds.find(x=>x.id===id);if(!f)return;const nm=$('ef_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');const _msEd=$('ef_ms')?num($('ef_ms').value):(f.ms||0);if(!(await validateFeedBeforeSave(_msEd,num($('ef_c').value),{msField:'ef_ms',priceField:'ef_c'})))return;f.name=nm;f.tipo=$('ef_tipo').value;f.custoKg=num($('ef_c').value)||0;ank().forEach(k=>{f[k]=num($('ef_'+k).value)||0;});if(f._dbId && typeof window.api!=='undefined'&&window.api.updateCustomFeed){try{await window.api.updateCustomFeed(f._dbId,f);}catch(e){console.error(e);}}closeMod();rFeeds();if(typeof autoSaveDbProfileImmediately==='function') autoSaveDbProfileImmediately();}
-async function doAddFeed(){const nm=$('nf_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');const f={id:newFeedId(),name:nm,tipo:$('nf_tipo').value||'',custoKg:num($('nf_c').value)||0};ank().forEach(k=>{f[k]=num($('nf_'+k).value)||0;});if(!(await validateFeedBeforeSave(f.ms,f.custoKg,{msField:'nf_ms',priceField:'nf_c'})))return;if(typeof window.api!=='undefined'&&window.api.saveCustomFeed){try{const dbId=await window.api.saveCustomFeed(S.sp,f);f._dbId=dbId;}catch(e){console.error(e);}}S.feeds.push(f);closeMod();rFeeds();if(typeof autoSaveDbProfileImmediately==='function') autoSaveDbProfileImmediately();}
+async function doEditFeed(id){const f=S.feeds.find(x=>x.id===id);if(!f)return;const nm=$('ef_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');const _msEd=$('ef_ms')?num($('ef_ms').value):(f.ms||0);if(!(await validateFeedBeforeSave(_msEd,num($('ef_c').value),{msField:'ef_ms',priceField:'ef_c'})))return;f.name=nm;f.tipo=$('ef_tipo').value;f.custoKg=num($('ef_c').value)||0;ank().forEach(k=>{f[k]=num($('ef_'+k).value)||0;});recalcFeedPdr(f);if(f._dbId && typeof window.api!=='undefined'&&window.api.updateCustomFeed){try{await window.api.updateCustomFeed(f._dbId,f);}catch(e){console.error(e);}}closeMod();rFeeds();if(typeof autoSaveDbProfileImmediately==='function') autoSaveDbProfileImmediately();}
+async function doAddFeed(){const nm=$('nf_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');const f={id:newFeedId(),name:nm,tipo:$('nf_tipo').value||'',custoKg:num($('nf_c').value)||0};ank().forEach(k=>{f[k]=num($('nf_'+k).value)||0;});recalcFeedPdr(f);if(!(await validateFeedBeforeSave(f.ms,f.custoKg,{msField:'nf_ms',priceField:'nf_c'})))return;if(typeof window.api!=='undefined'&&window.api.saveCustomFeed){try{const dbId=await window.api.saveCustomFeed(S.sp,f);f._dbId=dbId;}catch(e){console.error(e);}}S.feeds.push(f);closeMod();rFeeds();if(typeof autoSaveDbProfileImmediately==='function') autoSaveDbProfileImmediately();}
 
 async function loadCustomFeedsForSpecies(sp){
   if(typeof window.api==='undefined'||!window.api.getCustomFeeds)return;
@@ -1367,6 +1426,7 @@ async function importFeedsSheet(){
     if(/apague esta linha/i.test(f.name)) continue; // linha de exemplo
     if(!(num(f.ms)>0)){ semMs.push(f.name); continue; } // MS obrigatória
     if(!(num(f.custoKg)>0)) semPreco++;
+    recalcFeedPdr(f);
     toAdd.push(f);
   }
   if(!toAdd.length){
@@ -1550,6 +1610,7 @@ function promptConfirmCqbalFeed(parsedItem){
         const el = $('cq_' + k);
         f[k] = el ? (num(el.value) || 0) : 0;
       });
+      recalcFeedPdr(f);
       if (!(await validateFeedBeforeSave(f.ms, f.custoKg, {msField:'cq_ms', priceField:'cq_c'}))) return;
 
       const rumIds = ['bovcorte','bovleite','ovinos','caprinos'];
@@ -2031,6 +2092,7 @@ if (HAS_API) {
     if (!nm) return nAlert('Nome obrigatório.');
     var f = { id: newFeedId(), name: nm, tipo: $('nf_tipo')?.value || '', custoKg: parseFloat($('nf_c').value) || 0, _custom: true };
     ank().forEach(function(k) { f[k] = parseFloat($('nf_' + k).value) || 0; });
+    recalcFeedPdr(f);
     if (!(await validateFeedBeforeSave(f.ms, f.custoKg, {msField:'nf_ms', priceField:'nf_c'}))) return;
     S.feeds.push(f);
     try {
@@ -2075,6 +2137,7 @@ if (HAS_API) {
         });
       }
       var _ddChanged = (typeof dedupeFeedIds === 'function') ? dedupeFeedIds() : false;
+      if (typeof ensurePdr === 'function') ensurePdr();
       if (_ddChanged && typeof autoSaveDbProfileImmediately === 'function') autoSaveDbProfileImmediately();
     } catch(e) { console.error(e); }
     rFeeds();
@@ -2176,7 +2239,7 @@ async function saveCurrentDiet(){
 // ══════════ BOOTSTRAP (versão, fechar-salvando, restaurar sessão) ══════════
 (async function bootstrap(){
   // Versão exibida = versão realmente instalada (lida do package.json).
-  let v='4.3.2';
+  let v='4.4.0';
   try{ if(typeof window.api!=='undefined' && window.api.getAppVersion){ v=(await window.api.getAppVersion())||v; } }catch(e){}
   window.APP_VERSION=v;
   const ve=$('appVer'); if(ve) ve.textContent='v'+v;
