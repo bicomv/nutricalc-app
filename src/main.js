@@ -179,6 +179,10 @@ function setupIPC() {
   // sempre exibir a versão realmente instalada em vez de um número fixo).
   ipcMain.handle('get-app-version', () => app.getVersion());
 
+  // Backup completo do banco de dados (dietas, alimentos, bancos), disponível
+  // também sob demanda pelo menu "Backup" da interface, não só no update.
+  ipcMain.handle('backup-database-file', () => backupDatabaseFile());
+
   // Fechar o app: o renderer confirma que já persistiu a sessão/dieta atual.
   ipcMain.handle('confirm-close', () => {
     isQuitting = true;
@@ -268,6 +272,60 @@ function createWindow() {
   });
 }
 
+// Copia o banco de dados inteiro (dietas, alimentos, bancos) para um arquivo
+// escolhido pelo usuário. Usa a API de backup do better-sqlite3 (Online
+// Backup API do SQLite) em vez de copiar o arquivo bruto: isso garante uma
+// cópia consistente mesmo com o journal_mode=WAL ativo (gravações recentes
+// podem estar só no arquivo -wal, não no .db principal ainda).
+async function backupDatabaseFile() {
+  if (!db || !win) return false;
+  try {
+    const defaultName = 'nutricalc_backup_' + new Date().toISOString().slice(0, 10) + '.db';
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      title: 'Salvar Backup do Nutricalc',
+      defaultPath: defaultName,
+      filters: [{ name: 'Banco de Dados Nutricalc (*.db)', extensions: ['db'] }]
+    });
+    if (canceled || !filePath) return false;
+    await db.backup(filePath);
+    await dialog.showMessageBox(win, {
+      type: 'info', title: 'Backup Concluído',
+      message: 'Backup salvo com sucesso em:\n' + filePath
+    });
+    return true;
+  } catch (err) {
+    await dialog.showMessageBox(win, {
+      type: 'error', title: 'Erro no Backup',
+      message: 'Não foi possível salvar o backup: ' + err.message
+    });
+    return false;
+  }
+}
+
+// Diálogo exibido quando a atualização já foi baixada e está pronta para
+// instalar. Oferece um backup opcional antes de reiniciar — se o usuário
+// fizer o backup, o diálogo reaparece para ele então decidir se reinicia.
+async function showUpdateReadyDialog() {
+  if (!win) return;
+  const r = await dialog.showMessageBox(win, {
+    type: 'info',
+    title: 'Atualização Pronta',
+    message: 'A nova versão foi baixada! Você pode reiniciar agora para aplicar as melhorias.\n\nPor garantia, se quiser, salve antes uma cópia de segurança das suas dietas e alimentos.',
+    buttons: ['💾 Fazer Backup (opcional)', 'Reiniciar Agora', 'Mais Tarde'],
+    defaultId: 1,
+    cancelId: 2
+  });
+  if (r.response === 0) {
+    await backupDatabaseFile();
+    return showUpdateReadyDialog(); // reapresenta para decidir reiniciar ou não
+  }
+  if (r.response === 1) {
+    isQuitting = true;
+    autoUpdater.quitAndInstall();
+  }
+  // response === 2 (Mais Tarde): não faz nada, o app continua rodando
+}
+
 function setupAutoUpdater() {
   // Ignora erros de dev sem o arquivo .yml
   autoUpdater.autoDownload = true;
@@ -281,18 +339,7 @@ function setupAutoUpdater() {
     });
   });
 
-  autoUpdater.on('update-downloaded', () => {
-    if (win) {
-      dialog.showMessageBox(win, {
-        type: 'info',
-        title: 'Atualização Pronta',
-        message: 'A nova versão foi baixada! Reinicie o aplicativo para aplicar as melhorias.',
-        buttons: ['Reiniciar Agora', 'Mais Tarde']
-      }).then(r => {
-        if (r.response === 0) { isQuitting = true; autoUpdater.quitAndInstall(); }
-      });
-    }
-  });
+  autoUpdater.on('update-downloaded', () => { showUpdateReadyDialog(); });
 
   autoUpdater.checkForUpdatesAndNotify().catch(() => {
     // Falha silenciosa no caso de ausência de rede ou rodando em modo dev

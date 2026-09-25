@@ -188,13 +188,19 @@ function mapFoundToAlimento(found, nome, tipo) {
   else if (found['NDTGLm_BRCORTE2010'] !== undefined) ndtFinal = found['NDTGLm_BRCORTE2010'];
   else if (found['NDT'] !== undefined) ndtFinal = found['NDT'];
 
-  // Proteína Degradável / Solúvel (dpb / pdr)
+  // Degradabilidade Ruminal da PB (dpb, sempre em % da PB — ver campo 'dpb' no
+  // Nutricalc). PDR/PB é a medida direta de degradabilidade (frações A+B, a
+  // que realmente é degradada no rúmen); PDR/MS é a mesma grandeza em % da MS,
+  // convertida aqui para % da PB dividindo por PB. SOLP/PB (proteína
+  // "solúvel", fração A apenas) é usada só como último recurso: mede algo
+  // relacionado mas MENOR que a degradabilidade real (não inclui a fração B
+  // degradável), então nunca deve ter prioridade sobre PDR/PB ou PDR/MS.
   let dpbFinal = 0;
-  if (found['SOLP/PB'] !== undefined) dpbFinal = found['SOLP/PB'];
-  else if (found['PDR/PB'] !== undefined) dpbFinal = found['PDR/PB'];
+  if (found['PDR/PB'] !== undefined) dpbFinal = found['PDR/PB'];
   else if (found['PDR/MS'] !== undefined && found['PB'] && found['PB'] > 0) {
     dpbFinal = parseFloat(((found['PDR/MS'] / found['PB']) * 100).toFixed(2));
   }
+  else if (found['SOLP/PB'] !== undefined) dpbFinal = found['SOLP/PB'];
 
   // Campos percentuais (0-100). O OCR às vezes perde o ponto decimal (ex.:
   // "8.05" vira "805"), gerando um valor 100x maior — como não passam de 100,

@@ -78,6 +78,7 @@ border-radius:14px;padding:20px 14px;cursor:pointer;transition:all .25s;text-ali
 h2.st{font-family:var(--fd);font-size:17px;color:var(--p);margin-bottom:10px;}
 h3.ss{color:var(--p);font-size:12px;font-weight:700;margin-bottom:8px;}
 .tm{font-size:10px;color:var(--c5);}.tl{font-size:10px;font-weight:700;color:var(--p2);display:block;margin-bottom:2px;}
+.nut-i{display:inline-block;width:13px;height:13px;line-height:13px;border-radius:50%;background:var(--p3);color:#fff;font-size:9px;font-weight:900;text-align:center;font-style:normal;cursor:help;margin-left:3px;vertical-align:middle;}
 
 /* INPUTS */
 input[type="text"],input[type="number"],select{padding:6px 8px;border:1.5px solid var(--c4);border-radius:6px;font-family:var(--fm);font-size:11px;background:var(--c0);color:var(--tx);outline:none;transition:border .15s;}
@@ -206,7 +207,7 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
   <div class="l-logo"><div class="l-logo-tile">N</div></div>
   <h1>Nutricalc</h1>
   <p class="sub">Sistema para cálculos de dieta para animais.</p>
-  <p id="appVer" style="font-size:11px;opacity:.55;margin:2px 0 12px;letter-spacing:1px">v4.4.0</p>
+  <p id="appVer" style="font-size:11px;opacity:.55;margin:2px 0 12px;letter-spacing:1px">v4.4.1</p>
   <div style="margin-bottom:18px"><button class="btn bs" style="background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.25);font-size:12px" onclick="checkAppUpdate()">🔄 Verificar Atualização</button></div>
   <div id="resumeCard" class="resume hid">
     <span class="r-ic">📋</span>
@@ -240,7 +241,7 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
   <aside class="side no-print">
     <div class="brand">
       <div class="brand-logo">N</div>
-      <div class="brand-txt"><h1>Nutricalc</h1><div class="brand-v" id="appVerSide">v4.4.0</div></div>
+      <div class="brand-txt"><h1>Nutricalc</h1><div class="brand-v" id="appVerSide">v4.4.1</div></div>
     </div>
     <div class="ctx">
       <div class="ctx-row"><img class="ctx-icon" id="hI" alt=""><span class="ctx-v" id="hB">—</span></div>
@@ -275,6 +276,8 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
           <div id="backupMenu" class="dd-menu hid">
             <div class="dd-i" onclick="closeMenus();exportJSON()"><span class="dd-ic">📤</span><div><div class="dd-nm">Exportar backup</div><div class="dd-ds">Salva um arquivo com dietas e alimentos</div></div></div>
             <div class="dd-i" onclick="closeMenus();onImportJSON()"><span class="dd-ic">📥</span><div><div class="dd-nm">Importar backup</div><div class="dd-ds">Restaura de um arquivo de backup exportado</div></div></div>
+            <div class="dd-sep"></div>
+            <div class="dd-i" onclick="closeMenus();backupDatabaseFull()"><span class="dd-ic">🗄️</span><div><div class="dd-nm">Backup completo do banco (.db)</div><div class="dd-ds">Copia TODOS os bancos/espécies e dietas de uma vez, por garantia</div></div></div>
           </div>
         </span>
         <input type="file" id="jsonFileInput" accept=".json,application/json" style="display:none" onchange="importJSON(event)">
@@ -342,10 +345,21 @@ function nAsk3(msg, b1, b2, b3) {
 function badge(v,mn,mx){const val=Math.round(num(v)*100)/100;const okMn=mn==null||mn<=0||val>=mn;const okMx=mx==null||mx>=9999||val<=mx;return(okMn&&okMx)?'<span class="bg bg-ok">OK</span>':'<span class="bg bg-e">FORA</span>';}
 
 // ══════════ RUMINANT BASE NUTRIENTS ══════════
+// Metadados canônicos de dpb/pdr (rótulo, unidade, descrição e tooltip "(i)").
+// Única fonte de verdade: usado tanto na definição inicial (RNUT) quanto para
+// sincronizar bancos já salvos, que guardaram no SQLite a versão do rótulo
+// vigente na época do save (ver ensurePdr()).
+const PDR_NUT_META = {
+  dpb: {label:'Degr. PB (%PB)', unit:'%PB', desc:'Degradabilidade da PB no rúmen',
+    info:'Em % da PROTEÍNA BRUTA (PB), não da MS. Ex.: farelo de soja com PB=48,85% e Degr.=68,02% → de cada 100g de PB, ~68g são degradadas no rúmen. É usada para calcular o PDR automaticamente: PDR (%MS) = PB × Degr./100.'},
+  pdr: {label:'PDR (%MS)', unit:'%MS', desc:'Proteína Degradável no Rúmen',
+    info:'Em % da MATÉRIA SECA (MS) — é o valor usado na formulação da dieta. Calculado automaticamente como PB × Degr. PB/100. Só fica editável manualmente se o alimento não tiver a Degradabilidade da PB informada.'}
+};
 const RNUT=[
   {key:'ms',label:'MS (%)',unit:'%',desc:'Matéria Seca'},{key:'ndt',label:'NDT (%MS)',unit:'%MS',desc:'Nutrientes Digestíveis Totais'},
-  {key:'pb',label:'PB (%MS)',unit:'%MS',desc:'Proteína Bruta'},{key:'dpb',label:'Degr. PB (%)',unit:'%',desc:'Degradabilidade da PB (PDR = PB × DPB/100)'},
-  {key:'pdr',label:'PDR (%MS)',unit:'%MS',desc:'Proteína Degradável no Rúmen (PB × DPB/100) — calculado automático; editável se não houver DPB'},
+  {key:'pb',label:'PB (%MS)',unit:'%MS',desc:'Proteína Bruta'},
+  {key:'dpb', ...PDR_NUT_META.dpb},
+  {key:'pdr', ...PDR_NUT_META.pdr},
   {key:'ee',label:'EE (%MS)',unit:'%MS',desc:'Extrato Etéreo'},{key:'fdn',label:'FDN (%MS)',unit:'%MS',desc:'Fibra em Detergente Neutro'},
   {key:'vita',label:'U.I. Vit.A (por kg)',unit:'UI/kg',desc:'Vitamina A'},
   {key:'ca',label:'Ca (%)',unit:'%',desc:'Cálcio'},{key:'p',label:'P (%)',unit:'%',desc:'Fósforo'},
@@ -556,6 +570,13 @@ h+=`</div></div>`;
 $('p-info').innerHTML=h;}
 const rkf=()=>S.nuts.filter(n=>n.key.toUpperCase()!=='MS'&&n.key!=='mm'&&n.key!=='MM'&&n.enabled).map(n=>n.key);
 const ank=()=>S.nuts.map(n=>n.key);
+// Rótulo de um nutriente em formulários, com ícone "(i)" de explicação quando
+// o nutriente tem `info` (ex.: dpb/pdr, cuja base % PB vs % MS gera confusão).
+function nutLabelHtml(n){
+  if(!n) return '';
+  const i = n.info ? ` <i class="nut-i" title="${String(n.info).replace(/"/g,'&quot;')}">i</i>` : '';
+  return n.label + i;
+}
 const selfn=()=>S.feeds.filter(f=>S.sel.includes(f.id));
 const calcN=(feeds,p)=>{const r={};S.nuts.forEach(n=>{if(n.key.toUpperCase()==='MS')return;r[n.key]=0;for(let i=0;i<feeds.length;i++)r[n.key]+=p[i]*(feeds[i][n.key]||0);});return r;};
 
@@ -664,15 +685,17 @@ function recalcFeedPdr(f){
   if(dpb>0){ f.pdr=Math.round((num(f.pb)*dpb/100)*100)/100; }
   else if(f.pdr==null){ f.pdr=0; }
 }
-// Garante o nutriente 'pdr' (ruminantes) e recalcula em todos os alimentos.
+// Garante o nutriente 'pdr' (ruminantes), sincroniza os rótulos/tooltips de
+// dpb/pdr e recalcula o PDR de todos os alimentos.
 function ensurePdr(){
   const isRum = (typeof DB!=='undefined' && DB[S.sp] && DB[S.sp].rum);
   if(!isRum) return;
   if(Array.isArray(S.nuts) && !S.nuts.some(n=>n.key==='pdr')){
     const i=S.nuts.findIndex(n=>n.key==='dpb');
-    const nut={key:'pdr',label:'PDR (%MS)',unit:'%MS',desc:'Proteína Degradável no Rúmen (PB × DPB/100) — automático; editável se não houver DPB'};
+    const nut={key:'pdr', ...PDR_NUT_META.pdr};
     if(i>=0) S.nuts.splice(i+1,0,nut); else S.nuts.push(nut);
   }
+  (S.nuts||[]).forEach(n=>{ if(PDR_NUT_META[n.key]) Object.assign(n, PDR_NUT_META[n.key]); });
   (S.feeds||[]).forEach(f=>{ if(f.pdr===undefined) f.pdr=0; recalcFeedPdr(f); });
 }
 
@@ -1086,7 +1109,7 @@ async function exportDbProfileUI(id) {
     const exportPayload = {
       app: 'Nutricalc',
       format: 'database_profile',
-      version: (window.APP_VERSION || '4.4.0'),
+      version: (window.APP_VERSION || '4.4.1'),
       species_id: S.sp,
       species_label: DB[S.sp]?.label || S.sp,
       profile_name: p.name,
@@ -1276,6 +1299,7 @@ function rFeeds(){
   h+=`<div class="dd-i" onclick="closeMenus();importFeedsSheet()"><span class="dd-ic">📊</span><div><div class="dd-nm">Importar planilha</div><div class="dd-ds">Sobe um CSV preenchido com vários alimentos</div></div></div>`;
   h+=`<div class="dd-sep"></div>`;
   h+=`<div class="dd-i" onclick="closeMenus();downloadFeedTemplate()"><span class="dd-ic">📥</span><div><div class="dd-nm">Baixar modelo de planilha</div><div class="dd-ds">Gera o CSV com as colunas certas</div></div></div>`;
+  h+=`<div class="dd-i" onclick="closeMenus();exportFeedsSheet()"><span class="dd-ic">📤</span><div><div class="dd-nm">Exportar planilha (${S.sel.length} selecionado${S.sel.length===1?'':'s'})</div><div class="dd-ds">Salva os alimentos marcados no mesmo formato do modelo</div></div></div>`;
   h+=`</div></span></div></div>`;
   
   if(!fl.length){
@@ -1312,8 +1336,8 @@ async function delFeed(id){
   rFeeds();
   if(typeof autoSaveDbProfileImmediately==='function') autoSaveDbProfileImmediately();
 }
-function modAddFeed(){let h=`<h3>Novo Alimento</h3><div class="ga"><div style="grid-column:1/-1"><label class="tl">Nome</label><input type="text" id="nf_n" class="ilg" placeholder="Ex: Soja (farelo)"></div><div style="grid-column:1/-1"><label class="tl">Tipo</label><select id="nf_tipo" class="ilg"><option value="">— selecione —</option><option value="Volumoso">Volumoso</option><option value="Concentrado">Concentrado</option><option value="Mineral">Mineral</option></select></div>`;ank().forEach(k=>{const n=S.nuts.find(x=>x.key===k);h+=`<div><label class="tl">${n?n.label:k}</label><input type="number" id="nf_${k}" value="0" step="0.01" class="ilg"></div>`;});h+=`<div><label class="tl">R$/kg MN</label><input type="number" id="nf_c" value="0" step="0.01" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doAddFeed()">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`;openMod(h);}
-function modEditFeed(id){const f=S.feeds.find(x=>x.id===id);if(!f)return;let h=`<h3>Editar: ${f.name}</h3><div class="ga"><div style="grid-column:1/-1"><label class="tl">Nome</label><input type="text" id="ef_n" class="ilg" value="${f.name||''}"></div><div style="grid-column:1/-1"><label class="tl">Tipo</label><select id="ef_tipo" class="ilg"><option value="">— selecione —</option><option value="Volumoso"${f.tipo==='Volumoso'?' selected':''}>Volumoso</option><option value="Concentrado"${f.tipo==='Concentrado'?' selected':''}>Concentrado</option><option value="Mineral"${f.tipo==='Mineral'?' selected':''}>Mineral</option></select></div>`;ank().forEach(k=>{const n=S.nuts.find(x=>x.key===k);h+=`<div><label class="tl">${n?n.label:k}</label><input type="number" id="ef_${k}" value="${f[k]||0}" step="0.01" class="ilg"></div>`;});h+=`<div><label class="tl">R$/kg MN</label><input type="number" id="ef_c" value="${f.custoKg||0}" step="0.01" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doEditFeed(${id})">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`;openMod(h);}
+function modAddFeed(){let h=`<h3>Novo Alimento</h3><div class="ga"><div style="grid-column:1/-1"><label class="tl">Nome</label><input type="text" id="nf_n" class="ilg" placeholder="Ex: Soja (farelo)"></div><div style="grid-column:1/-1"><label class="tl">Tipo</label><select id="nf_tipo" class="ilg"><option value="">— selecione —</option><option value="Volumoso">Volumoso</option><option value="Concentrado">Concentrado</option><option value="Mineral">Mineral</option></select></div>`;ank().forEach(k=>{const n=S.nuts.find(x=>x.key===k);h+=`<div><label class="tl">${n?nutLabelHtml(n):k}</label><input type="number" id="nf_${k}" value="0" step="0.01" class="ilg"></div>`;});h+=`<div><label class="tl">R$/kg MN</label><input type="number" id="nf_c" value="0" step="0.01" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doAddFeed()">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`;openMod(h);}
+function modEditFeed(id){const f=S.feeds.find(x=>x.id===id);if(!f)return;let h=`<h3>Editar: ${f.name}</h3><div class="ga"><div style="grid-column:1/-1"><label class="tl">Nome</label><input type="text" id="ef_n" class="ilg" value="${f.name||''}"></div><div style="grid-column:1/-1"><label class="tl">Tipo</label><select id="ef_tipo" class="ilg"><option value="">— selecione —</option><option value="Volumoso"${f.tipo==='Volumoso'?' selected':''}>Volumoso</option><option value="Concentrado"${f.tipo==='Concentrado'?' selected':''}>Concentrado</option><option value="Mineral"${f.tipo==='Mineral'?' selected':''}>Mineral</option></select></div>`;ank().forEach(k=>{const n=S.nuts.find(x=>x.key===k);h+=`<div><label class="tl">${n?nutLabelHtml(n):k}</label><input type="number" id="ef_${k}" value="${f[k]||0}" step="0.01" class="ilg"></div>`;});h+=`<div><label class="tl">R$/kg MN</label><input type="number" id="ef_c" value="${f.custoKg||0}" step="0.01" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doEditFeed(${id})">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`;openMod(h);}
 async function doEditFeed(id){const f=S.feeds.find(x=>x.id===id);if(!f)return;const nm=$('ef_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');const _msEd=$('ef_ms')?num($('ef_ms').value):(f.ms||0);if(!(await validateFeedBeforeSave(_msEd,num($('ef_c').value),{msField:'ef_ms',priceField:'ef_c'})))return;f.name=nm;f.tipo=$('ef_tipo').value;f.custoKg=num($('ef_c').value)||0;ank().forEach(k=>{f[k]=num($('ef_'+k).value)||0;});recalcFeedPdr(f);if(f._dbId && typeof window.api!=='undefined'&&window.api.updateCustomFeed){try{await window.api.updateCustomFeed(f._dbId,f);}catch(e){console.error(e);}}closeMod();rFeeds();if(typeof autoSaveDbProfileImmediately==='function') autoSaveDbProfileImmediately();}
 async function doAddFeed(){const nm=$('nf_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');const f={id:newFeedId(),name:nm,tipo:$('nf_tipo').value||'',custoKg:num($('nf_c').value)||0};ank().forEach(k=>{f[k]=num($('nf_'+k).value)||0;});recalcFeedPdr(f);if(!(await validateFeedBeforeSave(f.ms,f.custoKg,{msField:'nf_ms',priceField:'nf_c'})))return;if(typeof window.api!=='undefined'&&window.api.saveCustomFeed){try{const dbId=await window.api.saveCustomFeed(S.sp,f);f._dbId=dbId;}catch(e){console.error(e);}}S.feeds.push(f);closeMod();rFeeds();if(typeof autoSaveDbProfileImmediately==='function') autoSaveDbProfileImmediately();}
 
@@ -1384,6 +1408,53 @@ async function downloadFeedTemplate(){
     if(ok) nAlert('✅ Modelo salvo!\n\nAbra no Excel ou Google Planilhas, preencha um alimento por linha (a MS é obrigatória), apague a linha de EXEMPLO e depois use "📊 Importar planilha".\n\n⚠️ Ao salvar no Excel/Sheets, mantenha o formato CSV.');
   }catch(e){ console.error(e); nAlert('Erro ao salvar o modelo: '+e.message); }
 }
+// Formata um número para célula de CSV: vírgula decimal, SEM separador de
+// milhar (n2()/toLocaleString usam '.' como milhar, o que quebraria a
+// reimportação em valores ≥1000 — ex.: vitamina A em UI/kg — já que num()
+// só troca vírgula por ponto, sem entender agrupamento de milhar).
+function csvNum(v){ return (num(v)||0).toFixed(2).replace('.', ','); }
+// Escapa uma célula de texto livre (nome/tipo) para CSV: entre aspas se
+// contiver o separador, aspas ou quebra de linha (nomes de alimentos podem
+// ter vírgulas/parênteses).
+function csvCell(v){ const s=String(v==null?'':v); return /[;,"\n\r]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+// Faz o inverso de csvCell ao ler uma linha: separa por `sep` respeitando
+// campos entre aspas (padrão CSV/RFC4180) — um split() simples quebraria um
+// nome de alimento como "Milho, grão moído" quando exportado entre aspas.
+function parseCsvLine(line, sep){
+  const out=[]; let cur=''; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(inQ){
+      if(c==='"'){ if(line[i+1]==='"'){ cur+='"'; i++; } else { inQ=false; } }
+      else cur+=c;
+    } else {
+      if(c==='"') inQ=true;
+      else if(c===sep){ out.push(cur); cur=''; }
+      else cur+=c;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+// Exporta os alimentos SELECIONADOS para uma planilha CSV, no mesmo formato
+// do modelo (mesmas colunas/ordem), para editar em lote e reimportar depois.
+async function exportFeedsSheet(){
+  if(typeof window.api==='undefined'||!window.api.saveTextFile){
+    return nAlert('Exportar planilha requer o aplicativo Desktop Nutricalc.');
+  }
+  const fl=selfn().sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+  if(!fl.length) return nAlert('Nenhum alimento selecionado. Marque ao menos um na lista para exportar.');
+  const headers=_feedSheetHeaders();
+  const rows=fl.map(f=>[csvCell(f.name), csvCell(f.tipo), ...S.nuts.map(n=>csvNum(f[n.key])), csvNum(f.custoKg)]);
+  const bom='﻿';
+  const csv=bom+[headers, ...rows].map(r=>r.join(_SHEET_SEP)).join('\r\n')+'\r\n';
+  const safeName=(S.activeDbProfileName||'nutricalc').toLowerCase().replace(/[^a-z0-9]+/gi,'_');
+  const fname='alimentos_'+(S.sp||'nutricalc')+'_'+safeName+'.csv';
+  try{
+    const ok=await window.api.saveTextFile(csv, fname);
+    if(ok) nAlert('✅ '+fl.length+' alimento(s) exportado(s)!\n\nO arquivo usa o mesmo formato do modelo — pode editar no Excel/Google Planilhas e reimportar com "📊 Importar planilha".');
+  }catch(e){ console.error(e); nAlert('Erro ao exportar: '+e.message); }
+}
 // Importa vários alimentos de uma planilha CSV preenchida para o banco atual.
 async function importFeedsSheet(){
   if(typeof window.api==='undefined'||!window.api.openTextFile){
@@ -1397,7 +1468,7 @@ async function importFeedsSheet(){
   if(lines.length<2) return nAlert('A planilha está vazia ou só tem o cabeçalho.');
   // Detecta o separador pelo cabeçalho (; ou ,)
   const sep=(lines[0].split(';').length>=lines[0].split(',').length)?';':',';
-  const header=lines[0].split(sep).map(s=>s.trim());
+  const header=parseCsvLine(lines[0], sep).map(s=>s.trim());
   // Mapeia cada coluna para um campo
   const colMap=header.map(h=>{
     const hl=h.toLowerCase().trim();
@@ -1412,7 +1483,7 @@ async function importFeedsSheet(){
 
   const toAdd=[]; const semMs=[]; let semNome=0, semPreco=0;
   for(let i=1;i<lines.length;i++){
-    const cells=lines[i].split(sep);
+    const cells=parseCsvLine(lines[i], sep);
     if(!cells.length) continue;
     const f={name:'',tipo:'',custoKg:0}; S.nuts.forEach(n=>f[n.key]=0);
     colMap.forEach((c,idx)=>{
@@ -1498,6 +1569,14 @@ function promptConfirmCqbalFeed(parsedItem){
         if (parsedItem.nutrientesBrutos[kUp] !== undefined) return parsedItem.nutrientesBrutos[kUp];
         if (parsedItem.nutrientesBrutos[kLow] !== undefined) return parsedItem.nutrientesBrutos[kLow];
       }
+      // PDR (%MS) não vem pronto do CQBAL como campo próprio do Nutricalc —
+      // pré-calcula aqui (PB × DPB/100) para o modal já abrir com o valor
+      // certo, em vez de exigir que o usuário mexa em PB/DPB para atualizá-lo.
+      if (kLow === 'pdr') {
+        const pbV = getNutVal('pb') || getNutVal('PB');
+        const dpbV = getNutVal('dpb') || getNutVal('DPB');
+        if (pbV > 0 && dpbV > 0) return Math.round((pbV * dpbV / 100) * 100) / 100;
+      }
       return 0;
     }
 
@@ -1569,13 +1648,13 @@ function promptConfirmCqbalFeed(parsedItem){
     const msNut = S.nuts.find(n => n.key.toUpperCase() === 'MS');
     if (msNut) {
       const val = getNutVal('ms') || getNutVal('MS');
-      h += `<div><label class="tl" style="color:var(--p);font-weight:700">${msNut.label}</label><input type="number" id="cq_${msNut.key}" value="${val}" step="0.01" class="ilg" style="border-color:var(--p3);font-weight:600"></div>`;
+      h += `<div><label class="tl" style="color:var(--p);font-weight:700">${nutLabelHtml(msNut)}</label><input type="number" id="cq_${msNut.key}" value="${val}" step="0.01" class="ilg" style="border-color:var(--p3);font-weight:600"></div>`;
     }
 
     enabledNuts.filter(n => n.key.toUpperCase() !== 'MS').forEach(n => {
       const k = n.key;
       const val = getNutVal(k);
-      h += `<div><label class="tl" style="color:var(--p);font-weight:700">${n.label}</label><input type="number" id="cq_${k}" value="${val}" step="0.01" class="ilg" style="border-color:var(--p3);font-weight:600"></div>`;
+      h += `<div><label class="tl" style="color:var(--p);font-weight:700">${nutLabelHtml(n)}</label><input type="number" id="cq_${k}" value="${val}" step="0.01" class="ilg" style="border-color:var(--p3);font-weight:600"></div>`;
     });
     h += `</div></div>`;
 
@@ -1586,7 +1665,7 @@ function promptConfirmCqbalFeed(parsedItem){
       otherNuts.filter(n => n.key.toUpperCase() !== 'MS').forEach(n => {
         const k = n.key;
         const val = getNutVal(k);
-        h += `<div><label class="tl">${n.label}</label><input type="number" id="cq_${k}" value="${val}" step="0.01" class="ilg"></div>`;
+        h += `<div><label class="tl">${nutLabelHtml(n)}</label><input type="number" id="cq_${k}" value="${val}" step="0.01" class="ilg"></div>`;
       });
       h += `</div></div>`;
     }
@@ -1649,7 +1728,7 @@ function tglNut(k){
   rNuts();
   if($('p-reqs'))rReqs();
 }
-function rNuts(){let h=`<div class="fb mb10"><h2 class="st" style="margin:0">Nutrientes</h2><button class="btn bp" onclick="modAddNut()">+ Adicionar</button></div><p class="tm mb10" style="margin-top:-6px">Marque os nutrientes que deseja usar nas exigências nutricionais.</p><div class="gn">`;S.nuts.forEach(n=>{const isMS=n.key.toUpperCase()==='MS';const checked=n.enabled?'checked':'';const dis=isMS?'disabled title="MS é obrigatória"':'';h+=`<div class="nc"><input type="checkbox" ${checked} ${dis} onchange="tglNut('${n.key}')" style="width:18px;height:18px;cursor:pointer;margin-right:4px"><div class="ni">${n.key.toUpperCase()}</div><div style="flex:1"><div class="nm">${n.desc}</div><div class="nd">${n.unit} • ${n.label}</div></div><div><button class="bi" onclick="modEditNut('${n.key}')">✏️</button><button class="bi" onclick="delNut('${n.key}')">🗑️</button></div></div>`;});h+=`</div>`;$('p-nuts').innerHTML=h;}
+function rNuts(){let h=`<div class="fb mb10"><h2 class="st" style="margin:0">Nutrientes</h2><button class="btn bp" onclick="modAddNut()">+ Adicionar</button></div><p class="tm mb10" style="margin-top:-6px">Marque os nutrientes que deseja usar nas exigências nutricionais.</p><div class="gn">`;S.nuts.forEach(n=>{const isMS=n.key.toUpperCase()==='MS';const checked=n.enabled?'checked':'';const dis=isMS?'disabled title="MS é obrigatória"':'';h+=`<div class="nc"><input type="checkbox" ${checked} ${dis} onchange="tglNut('${n.key}')" style="width:18px;height:18px;cursor:pointer;margin-right:4px"><div class="ni">${n.key.toUpperCase()}</div><div style="flex:1"><div class="nm">${n.desc}${n.info?` <i class="nut-i" title="${String(n.info).replace(/"/g,'&quot;')}">i</i>`:''}</div><div class="nd">${n.unit} • ${n.label}</div></div><div><button class="bi" onclick="modEditNut('${n.key}')">✏️</button><button class="bi" onclick="delNut('${n.key}')">🗑️</button></div></div>`;});h+=`</div>`;$('p-nuts').innerHTML=h;}
 function modAddNut(){openMod(`<h3>Novo Nutriente</h3><div class="ga" style="grid-template-columns:1fr 1fr"><div><label class="tl">Sigla</label><input type="text" id="nn_k" class="ilg"></div><div><label class="tl">Rótulo</label><input type="text" id="nn_l" class="ilg"></div><div><label class="tl">Unidade</label><input type="text" id="nn_u" class="ilg"></div><div><label class="tl">Descrição</label><input type="text" id="nn_d" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doAddNut()">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`);}
 function doAddNut(){const k=$('nn_k').value.trim().toLowerCase().replace(/[^a-z0-9]/g,'');if(!k||S.nuts.find(n=>n.key===k))return nAlert('Sigla inválida ou duplicada.');S.nuts.push({key:k,label:$('nn_l').value||k,unit:$('nn_u').value||'%',desc:$('nn_d').value||k,enabled:true});S.feeds.forEach(f=>{if(f[k]===undefined)f[k]=0;});closeMod();rNuts();scheduleAutoSaveDb();}
 function modEditNut(key){const n=S.nuts.find(x=>x.key===key);if(!n)return;openMod(`<h3>Editar: ${n.desc}</h3><div class="ga" style="grid-template-columns:1fr 1fr"><div><label class="tl">Rótulo</label><input type="text" id="en_l" value="${n.label}" class="ilg"></div><div><label class="tl">Unidade</label><input type="text" id="en_u" value="${n.unit}" class="ilg"></div><div style="grid-column:1/-1"><label class="tl">Descrição</label><input type="text" id="en_d" value="${n.desc}" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="const x=S.nuts.find(n=>n.key==='${key}');x.label=$('en_l').value;x.unit=$('en_u').value;x.desc=$('en_d').value;closeMod();rNuts();scheduleAutoSaveDb();">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`);}
@@ -1674,7 +1753,7 @@ function rReqs(){
   keys.forEach(k=>{
     const n=S.nuts.find(x=>x.key===k);
     const r=S.req.n[k]||{min:0,max:9999};
-    h+=`<div class="rb"><div class="rh"><label>${n?n.desc+' ('+n.unit+')':k}</label><button class="b-open" onclick="S.req.n['${k}']={min:0,max:9999};syncReqChange();rReqs();">EM ABERTO</button></div><div class="rr"><div><span>Mín</span><br><input type="number" step="0.01" value="${r.min}" class="ism" onchange="S.req.n['${k}'].min=num(this.value)||0;syncReqChange();"></div><div><span>Máx</span><br><input type="number" step="0.01" value="${r.max}" class="ism" onchange="S.req.n['${k}'].max=num(this.value)||0;syncReqChange();"></div></div></div>`;
+    h+=`<div class="rb"><div class="rh"><label>${n?(n.desc+' ('+n.unit+')'+(n.info?` <i class="nut-i" title="${String(n.info).replace(/"/g,'&quot;')}">i</i>`:'')):k}</label><button class="b-open" onclick="S.req.n['${k}']={min:0,max:9999};syncReqChange();rReqs();">EM ABERTO</button></div><div class="rr"><div><span>Mín</span><br><input type="number" step="0.01" value="${r.min}" class="ism" onchange="S.req.n['${k}'].min=num(this.value)||0;syncReqChange();"></div><div><span>Máx</span><br><input type="number" step="0.01" value="${r.max}" class="ism" onchange="S.req.n['${k}'].max=num(this.value)||0;syncReqChange();"></div></div></div>`;
   });
   h+=`</div></div>`;
   $('p-reqs').innerHTML=h;
@@ -2239,7 +2318,7 @@ async function saveCurrentDiet(){
 // ══════════ BOOTSTRAP (versão, fechar-salvando, restaurar sessão) ══════════
 (async function bootstrap(){
   // Versão exibida = versão realmente instalada (lida do package.json).
-  let v='4.4.0';
+  let v='4.4.1';
   try{ if(typeof window.api!=='undefined' && window.api.getAppVersion){ v=(await window.api.getAppVersion())||v; } }catch(e){}
   window.APP_VERSION=v;
   const ve=$('appVer'); if(ve) ve.textContent='v'+v;
@@ -2277,6 +2356,18 @@ async function saveCurrentDiet(){
   // e demais alterações mesmo sem uma ação explícita).
   setInterval(function(){ if(S.sp) saveSessionNow(); }, 6000);
 })();
+
+// ══════════ BACKUP COMPLETO DO BANCO DE DADOS (.db) ══════════
+// Copia o arquivo SQLite inteiro (todas as espécies, bancos, alimentos e
+// dietas) para onde o usuário escolher — mais completo que o "Exportar
+// backup" em JSON, que só traz a espécie/banco atualmente aberto.
+async function backupDatabaseFull(){
+  if(typeof window.api==='undefined'||!window.api.backupDatabaseFile){
+    return nAlert('Backup completo disponível apenas no aplicativo Desktop Nutricalc.');
+  }
+  try{ await window.api.backupDatabaseFile(); }
+  catch(e){ console.error(e); nAlert('Erro ao fazer backup: '+e.message); }
+}
 
 // ══════════ CHECK FOR UPDATES (global) ══════════
 function checkAppUpdate() {
