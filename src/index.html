@@ -207,7 +207,7 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
   <div class="l-logo"><div class="l-logo-tile">N</div></div>
   <h1>Nutricalc</h1>
   <p class="sub">Sistema para cálculos de dieta para animais.</p>
-  <p id="appVer" style="font-size:11px;opacity:.55;margin:2px 0 12px;letter-spacing:1px">v4.4.3</p>
+  <p id="appVer" style="font-size:11px;opacity:.55;margin:2px 0 12px;letter-spacing:1px">v4.4.4</p>
   <div style="margin-bottom:18px"><button class="btn bs" style="background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.25);font-size:12px" onclick="checkAppUpdate()">🔄 Verificar Atualização</button></div>
   <div id="resumeCard" class="resume hid">
     <span class="r-ic">📋</span>
@@ -234,14 +234,14 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
       <div class="sp-card" onclick="initSpecies('equinos')"><span class="em">🐴</span><div class="nm">Equinos</div><div class="ds">Manutenção, trabalho e reprodução</div></div>
     </div>
   </div>
-  <p class="cred">Criador: <strong>José Carlos Arevalo Júnior</strong> • jcarevalojr@gmail.com<br>Colaboradores: <strong>Luiz Gabriel de Souza Maistro</strong> (FACCREI), <strong>Felipe Pinheiro de Souza</strong> (UNIFIO), <strong>Marcelo Alves da Silva</strong> (UENP), <strong>Marcos Augusto Alves da Silva</strong> (UENP), <strong>Petrônio Pinheiro Porto</strong> (UENP), <strong>Simone Fernanda Nedel Pertile</strong> (UNOPAR)<br>Os criadores não se responsabilizam pelos dados obtidos nesse sistema nem seus resultados.</p>
+  <p class="cred">Criador: <strong>José Carlos Arevalo Júnior</strong> • jcarevalojr@gmail.com<br>Colaboradores: <strong>Luiz Gabriel de Souza Maistro</strong> (FACCREI), <strong>Marcos Augusto Alves da Silva</strong> (UENP), <strong>Petrônio Pinheiro Porto</strong> (UENP), <strong>Simone Fernanda Nedel Pertile</strong> (UNOPAR)<br>Os criadores não se responsabilizam pelos dados obtidos nesse sistema nem seus resultados.</p>
 </div>
 
 <div id="app" class="app">
   <aside class="side no-print">
     <div class="brand">
       <div class="brand-logo">N</div>
-      <div class="brand-txt"><h1>Nutricalc</h1><div class="brand-v" id="appVerSide">v4.4.3</div></div>
+      <div class="brand-txt"><h1>Nutricalc</h1><div class="brand-v" id="appVerSide">v4.4.4</div></div>
     </div>
     <div class="ctx">
       <div class="ctx-row"><img class="ctx-icon" id="hI" alt=""><span class="ctx-v" id="hB">—</span></div>
@@ -297,7 +297,7 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
       <div id="p-res" class="pn"></div>
       <div id="p-diets" class="pn"></div>
     </div>
-    <div class="ft no-print">Nutricalc • Criador: José C. Arevalo Jr. (jcarevalojr@gmail.com) • Colaboradores: Luiz G. S. Maistro, Felipe P. Souza, Marcelo A. Silva, Marcos A. A. Silva, Petrônio P. Porto, Simone F. N. Pertile</div>
+    <div class="ft no-print">Nutricalc • Criador: José C. Arevalo Jr. (jcarevalojr@gmail.com) • Colaboradores: Luiz G. S. Maistro, Marcos A. A. Silva, Petrônio P. Porto, Simone F. N. Pertile</div>
   </div>
   <div id="zoomCtl" class="zoomctl no-print">
     <button onclick="appZoom(-1)" title="Diminuir zoom">−</button>
@@ -609,7 +609,7 @@ async function goHome(){
   S.dirty=false;
   $('landing').style.display='';$('app').classList.remove('on');
 }
-function updFt(){const ft=document.querySelector('.ft');if(!ft)return;if(S.unsaved)ft.innerHTML='<span style="color:#ea580c;font-weight:700">⚠️ Dados não exportados — use 📤 Exportar para salvar!</span> • Nutricalc — UENP';else ft.innerHTML='Nutricalc • Criador: José C. Arevalo Jr. (jcarevalojr@gmail.com) • Colaboradores: Luiz G. S. Maistro, Felipe P. Souza, Marcelo A. Silva, Marcos A. A. Silva, Petrônio P. Porto, Simone F. N. Pertile';}
+function updFt(){const ft=document.querySelector('.ft');if(!ft)return;if(S.unsaved)ft.innerHTML='<span style="color:#ea580c;font-weight:700">⚠️ Dados não exportados — use 📤 Exportar para salvar!</span> • Nutricalc — UENP';else ft.innerHTML='Nutricalc • Criador: José C. Arevalo Jr. (jcarevalojr@gmail.com) • Colaboradores: Luiz G. S. Maistro, Marcos A. A. Silva, Petrônio P. Porto, Simone F. N. Pertile';}
 
 // ══════════ TABS ══════════
 function setTopTitle(t){const el=$('topTitle');if(!el)return;const b=document.querySelector('.tab[data-t="'+t+'"]');if(!b)return;const txt=Array.from(b.childNodes).filter(n=>n.nodeType===3).map(n=>n.textContent).join('').trim();el.textContent=txt||b.textContent.trim();}
@@ -1109,7 +1109,7 @@ async function exportDbProfileUI(id) {
     const exportPayload = {
       app: 'Nutricalc',
       format: 'database_profile',
-      version: (window.APP_VERSION || '4.4.3'),
+      version: (window.APP_VERSION || '4.4.4'),
       species_id: S.sp,
       species_label: DB[S.sp]?.label || S.sp,
       profile_name: p.name,
@@ -2009,7 +2009,7 @@ w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Nutric
 @font-face { font-family: 'DM Sans'; src: local('DM Sans'), local('Segoe UI'), local('Arial'); }
 @font-face { font-family: 'DM Mono'; src: local('DM Mono'), local('Consolas'), local('monospace'); }
 @font-face { font-family: 'Playfair Display'; src: local('Playfair Display'), local('Georgia'), local('serif'); }
-</style><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'DM Sans',sans-serif;color:#1e293b;padding:20px;font-size:11px;}.ph{text-align:center;border-bottom:3px solid #14532d;padding-bottom:10px;margin-bottom:6px;}.ph h1{font-family:'Playfair Display',serif;font-size:20px;color:#14532d;}.ph p{font-size:9px;color:#666;margin-top:2px;}.pf{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px;font-size:10px;}.pf label{font-weight:700;color:#14532d;}.pf input{border:none;border-bottom:1px solid #999;font-family:'DM Sans';font-size:10px;width:150px;padding:2px 0;}.cd{border:1px solid #ccc;border-radius:8px;padding:12px;margin-bottom:10px;page-break-inside:avoid;}.cd-d{background:#14532d;color:#fff;border:none;}h3{font-size:11px;color:#14532d;margin-bottom:5px;}table{width:100%;border-collapse:collapse;}th{background:#e5e7eb;font-size:8px;text-transform:uppercase;padding:4px 3px;text-align:center;font-family:'DM Mono';}th:first-child{text-align:left;padding-left:8px;}td{padding:4px 3px;border-bottom:1px solid #ddd;text-align:center;font-size:10px;font-family:'DM Mono';}td:first-child{text-align:left;padding-left:8px;}tr:nth-child(even){background:#f8f8f8;}.tn{font-family:'DM Sans';font-weight:600;}.tb2{font-weight:700;color:#14532d;}.bg{padding:1px 6px;border-radius:8px;font-size:8px;font-weight:700;}.bg-ok{background:#dcfce7;color:#14532d;}.bg-e{background:#fef2f2;color:#991b1b;}.cg,.cgd{display:flex;justify-content:space-around;flex-wrap:wrap;gap:6px;padding:8px;}.cgl{padding:8px;background:#f0fdf4;border-radius:6px;border:1px solid #bbf7d0;margin-top:8px;}.ci{text-align:center;}.ci .lb{font-size:8px;font-weight:700;text-transform:uppercase;}.ci .vl{font-size:15px;font-weight:900;font-family:'DM Mono';}.ratio{margin-top:5px;padding:6px 10px;background:#f1f5f9;border-radius:5px;font-size:10px;}.br{display:flex;align-items:center;gap:5px;margin-bottom:3px;}.blb{font-size:9px;width:110px;text-align:right;}.btr{flex:1;background:#e2e8f0;border-radius:4px;height:16px;position:relative;}.bfl{height:100%;border-radius:4px;display:flex;align-items:center;position:relative;}.bfl .in{font-size:8px;color:#fff;font-weight:700;padding-right:3px;margin-left:auto;}.bfl .out{position:absolute;left:calc(100% + 3px);font-size:8px;font-weight:700;white-space:nowrap;}.pft{text-align:center;font-size:8px;color:#333;margin-top:14px;border-top:1px solid #ccc;padding-top:6px;}.no-print,.btn,.bi,.b-open,.sb,.sr,.tabs,.hdr,.bars-chart{display:none!important;}body,td,th,span,p,div,label{color:#1e293b!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}.ph p{color:#333!important;}.pf span,.pf label{color:#1e293b!important;}.cd-d,.cd-d *{color:#fff!important;}.bg-ok{background:#dcfce7!important;color:#14532d!important;}.bg-e{background:#fef2f2!important;color:#991b1b!important;}.tb2{color:#14532d!important;}</style></head><body><div class="ph"><h1>${db.icon||'🧬'} Nutricalc — ${title}</h1><p>${db.label||''} • ${new Date().toLocaleDateString('pt-BR')}</p></div><div class="pf">${S.info.responsavel?'<div><label>Responsável: </label><span>'+S.info.responsavel+'</span></div>':''}${S.info.dieta?'<div><label>Dieta: </label><span>'+S.info.dieta+'</span></div>':''}${S.info.propriedade?'<div><label>Propriedade: </label><span>'+S.info.propriedade+'</span></div>':''}${S.info.animal?'<div><label>Animal/Lote: </label><span>'+S.info.animal+'</span></div>':''}</div>${c}<div class="pft">Nutricalc • Criador: José C. Arevalo Jr. (jcarevalojr@gmail.com) • Colaboradores: Luiz G. S. Maistro, Felipe P. Souza, Marcelo A. Silva, Marcos A. A. Silva, Petrônio P. Porto, Simone F. N. Pertile</div></body></html>`);
+</style><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'DM Sans',sans-serif;color:#1e293b;padding:20px;font-size:11px;}.ph{text-align:center;border-bottom:3px solid #14532d;padding-bottom:10px;margin-bottom:6px;}.ph h1{font-family:'Playfair Display',serif;font-size:20px;color:#14532d;}.ph p{font-size:9px;color:#666;margin-top:2px;}.pf{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px;font-size:10px;}.pf label{font-weight:700;color:#14532d;}.pf input{border:none;border-bottom:1px solid #999;font-family:'DM Sans';font-size:10px;width:150px;padding:2px 0;}.cd{border:1px solid #ccc;border-radius:8px;padding:12px;margin-bottom:10px;page-break-inside:avoid;}.cd-d{background:#14532d;color:#fff;border:none;}h3{font-size:11px;color:#14532d;margin-bottom:5px;}table{width:100%;border-collapse:collapse;}th{background:#e5e7eb;font-size:8px;text-transform:uppercase;padding:4px 3px;text-align:center;font-family:'DM Mono';}th:first-child{text-align:left;padding-left:8px;}td{padding:4px 3px;border-bottom:1px solid #ddd;text-align:center;font-size:10px;font-family:'DM Mono';}td:first-child{text-align:left;padding-left:8px;}tr:nth-child(even){background:#f8f8f8;}.tn{font-family:'DM Sans';font-weight:600;}.tb2{font-weight:700;color:#14532d;}.bg{padding:1px 6px;border-radius:8px;font-size:8px;font-weight:700;}.bg-ok{background:#dcfce7;color:#14532d;}.bg-e{background:#fef2f2;color:#991b1b;}.cg,.cgd{display:flex;justify-content:space-around;flex-wrap:wrap;gap:6px;padding:8px;}.cgl{padding:8px;background:#f0fdf4;border-radius:6px;border:1px solid #bbf7d0;margin-top:8px;}.ci{text-align:center;}.ci .lb{font-size:8px;font-weight:700;text-transform:uppercase;}.ci .vl{font-size:15px;font-weight:900;font-family:'DM Mono';}.ratio{margin-top:5px;padding:6px 10px;background:#f1f5f9;border-radius:5px;font-size:10px;}.br{display:flex;align-items:center;gap:5px;margin-bottom:3px;}.blb{font-size:9px;width:110px;text-align:right;}.btr{flex:1;background:#e2e8f0;border-radius:4px;height:16px;position:relative;}.bfl{height:100%;border-radius:4px;display:flex;align-items:center;position:relative;}.bfl .in{font-size:8px;color:#fff;font-weight:700;padding-right:3px;margin-left:auto;}.bfl .out{position:absolute;left:calc(100% + 3px);font-size:8px;font-weight:700;white-space:nowrap;}.pft{text-align:center;font-size:8px;color:#333;margin-top:14px;border-top:1px solid #ccc;padding-top:6px;}.no-print,.btn,.bi,.b-open,.sb,.sr,.tabs,.hdr,.bars-chart{display:none!important;}body,td,th,span,p,div,label{color:#1e293b!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}.ph p{color:#333!important;}.pf span,.pf label{color:#1e293b!important;}.cd-d,.cd-d *{color:#fff!important;}.bg-ok{background:#dcfce7!important;color:#14532d!important;}.bg-e{background:#fef2f2!important;color:#991b1b!important;}.tb2{color:#14532d!important;}</style></head><body><div class="ph"><h1>${db.icon||'🧬'} Nutricalc — ${title}</h1><p>${db.label||''} • ${new Date().toLocaleDateString('pt-BR')}</p></div><div class="pf">${S.info.responsavel?'<div><label>Responsável: </label><span>'+S.info.responsavel+'</span></div>':''}${S.info.dieta?'<div><label>Dieta: </label><span>'+S.info.dieta+'</span></div>':''}${S.info.propriedade?'<div><label>Propriedade: </label><span>'+S.info.propriedade+'</span></div>':''}${S.info.animal?'<div><label>Animal/Lote: </label><span>'+S.info.animal+'</span></div>':''}</div>${c}<div class="pft">Nutricalc • Criador: José C. Arevalo Jr. (jcarevalojr@gmail.com) • Colaboradores: Luiz G. S. Maistro, Marcos A. A. Silva, Petrônio P. Porto, Simone F. N. Pertile</div></body></html>`);
 w.document.close();setTimeout(()=>w.print(),400);}
 
 // ══════════ EXPORT/IMPORT ══════════
@@ -2319,7 +2319,7 @@ async function saveCurrentDiet(){
 // ══════════ BOOTSTRAP (versão, fechar-salvando, restaurar sessão) ══════════
 (async function bootstrap(){
   // Versão exibida = versão realmente instalada (lida do package.json).
-  let v='4.4.3';
+  let v='4.4.4';
   try{ if(typeof window.api!=='undefined' && window.api.getAppVersion){ v=(await window.api.getAppVersion())||v; } }catch(e){}
   window.APP_VERSION=v;
   const ve=$('appVer'); if(ve) ve.textContent='v'+v;
