@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const Database = require('better-sqlite3');
@@ -197,6 +197,30 @@ function setupIPC() {
       return { success: true, version: result?.updateInfo?.version || null };
     } catch (e) {
       return { success: false, error: e.message };
+    }
+  });
+
+  // Relatório em PDF (ex.: comparação de dietas): renderiza o HTML numa
+  // janela oculta, gera o PDF em A4 e salva onde o usuário escolher.
+  ipcMain.handle('dialog-save-pdf', async (_, html, defaultName) => {
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      title: 'Salvar relatório em PDF',
+      defaultPath: defaultName || 'relatorio.pdf',
+      filters: [{ name: 'PDF', extensions: ['pdf'] }]
+    });
+    if (canceled || !filePath) return false;
+    const pdfWin = new BrowserWindow({ show: false, webPreferences: { javascript: false } });
+    try {
+      await pdfWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+      const data = await pdfWin.webContents.printToPDF({ pageSize: 'A4', printBackground: true, margins: { top: 0.5, bottom: 0.5, left: 0.45, right: 0.45 } });
+      fs.writeFileSync(filePath, data);
+      shell.openPath(filePath);
+      return true;
+    } catch (e) {
+      console.error('Erro ao gerar PDF:', e);
+      return { error: e.message };
+    } finally {
+      pdfWin.destroy();
     }
   });
 

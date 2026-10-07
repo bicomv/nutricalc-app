@@ -28,6 +28,8 @@ contextBridge.exposeInMainWorld('api', {
   // Planilha de alimentos (modelo CSV / importação)
   saveTextFile: (content, name) => ipcRenderer.invoke('dialog-save-text', content, name),
   openTextFile: () => ipcRenderer.invoke('dialog-open-text'),
+  // Relatório em PDF
+  savePdf: (html, name) => ipcRenderer.invoke('dialog-save-pdf', html, name),
   // Database Profiles (Múltiplos Bancos de Dados)
   getDbProfiles: (spId) => ipcRenderer.invoke('db-get-profiles', spId),
   saveDbProfile: (p) => ipcRenderer.invoke('db-save-profile', p),
