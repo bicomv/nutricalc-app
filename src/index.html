@@ -201,6 +201,7 @@ input[type="checkbox"]{width:14px;height:14px;accent-color:var(--p);cursor:point
 .cmp-m{font-size:10px;color:var(--c6);}
 .cmp-up{color:var(--rtx);}.cmp-down{color:var(--p3);}
 td.cmp-ok{color:var(--p);font-weight:700;}td.cmp-lo,td.cmp-hi{color:var(--rtx);font-weight:700;background:var(--rbg)!important;}
+.cmp-chart{margin:8px 0 6px}.cmp-leg{display:inline-flex;gap:14px;font-size:10px;color:#64748b;margin-bottom:2px}.cmp-leg span{display:inline-flex;align-items:center;gap:5px}.cmp-leg i{display:inline-block;width:10px;height:10px;border-radius:50%}.cmp-leg i.dia{border-radius:1px;transform:rotate(45deg);width:9px;height:9px}.cmp-leg-req{font-size:10px;color:#64748b;margin-left:14px;padding-left:16px;position:relative}.cmp-leg-req:before{content:'';position:absolute;left:0;top:2px;width:12px;height:8px;border-radius:2px;background:#bbf7d0}.cmp-svg{display:block;overflow:visible;max-width:820px}
 .cmp-eco{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:10px;}
 .cmp-concl{background:var(--p7);border:1px solid var(--p5);border-radius:8px;padding:8px 12px;font-size:12px;line-height:1.5;margin-bottom:10px;}
 .cmp-res td{font-weight:800;border-top:2px solid var(--p);}td.cmp-win{background:var(--p7)!important;color:var(--p);}
@@ -2078,11 +2079,12 @@ async function rCmp(){
   h+=`<div class="cd"><div class="cmp-pick"><div><label class="tl">Dieta de referência</label><select class="ilg" onchange="cmpSet('ref',this.value)">${opt(a.id,b.id)}</select></div><span class="cmp-vs">×</span><div><label class="tl">Comparar com</label><select class="ilg" onchange="cmpSet('cmp',this.value)">${opt(b.id,a.id)}</select></div></div>`;
   h+=`<h3 class="ss mt14">Nutrientes no comparativo</h3><div class="fg">${allNuts.map(n=>`<button class="cmp-chip ${CMP.nuts.includes(n.key)?'on':''}" title="${cmpEsc(n.desc||'')}" onclick="cmpTglNut('${n.key}')">${cmpEsc(n.label||n.key)}</button>`).join('')}</div>`;
   h+=`<p class="tm mt6">Cada dieta é avaliada contra as exigências com que foi salva. Valores fora da faixa ficam em vermelho.</p></div>`;
-  h+=`<div class="cd"><h3 class="ss">Custo por animal por dia</h3>${cmpCostCards(a,b)}</div>`;
-  h+=`<div class="cd"><h3 class="ss">Exigências × dietas</h3><div class="tw">${cmpNutTable(a,b,allNuts)}</div></div>`;
+  const nsSel=CMP.nuts.map(k=>allNuts.find(n=>n.key===k)).filter(Boolean);
+  h+=`<div class="cd"><h3 class="ss">Custo por animal por dia</h3>${cmpCostCards(a,b)}<div class="cmp-chart">${cmpLegend()}${cmpChartsCost(a,b)}</div></div>`;
+  h+=`<div class="cd"><h3 class="ss">Exigências × dietas</h3>${nsSel.length?`<div class="cmp-chart">${cmpLegend()}<span class="cmp-leg-req">Faixa de exigência</span>${cmpRangeChart(a,b,nsSel)}</div>`:''}<div class="tw">${cmpNutTable(a,b,allNuts)}</div></div>`;
   if(ECO_SP[S.sp]){const t=ecoTable(a,b);
-    h+=`<div class="cd"><h3 class="ss">Confinamento: qual dieta compensa mais</h3>${ecoInputs(a,b)}<div class="cmp-concl">${ecoConclusion(a,b,t)}</div><div class="tw">${t.html}</div></div>`;}
-  h+=`<div class="cd"><h3 class="ss">Composição (% da MS)</h3><div class="tw">${cmpCompTable(a,b)}</div></div>`;
+    h+=`<div class="cd"><h3 class="ss">Confinamento: qual dieta compensa mais</h3>${ecoInputs(a,b)}<div class="cmp-concl">${ecoConclusion(a,b,t)}</div><div class="cmp-chart">${cmpLegend()}${cmpChartsEco(t)}</div><div class="tw">${t.html}</div></div>`;}
+  h+=`<div class="cd"><h3 class="ss">Composição (% da MS)</h3><div class="cmp-chart">${cmpLegend()}${cmpChartsComp(a,b)}</div><div class="tw">${cmpCompTable(a,b)}</div></div>`;
   el.innerHTML=h;
 }
 function cmpSet(k,v){const d=CMP.list.find(x=>String(x.id)===String(v));if(!d)return;CMP[k]=d.id;if(k==='ref')CMP.nuts=null;rCmp();}
@@ -2123,6 +2125,52 @@ function cmpConclusion(a,b,allNuts){
   if(!cmpSameReq(a,b))t+='Atenção: as dietas foram salvas com exigências diferentes.';
   return t;
 }
+// ── Gráficos (SVG puro, iguais na tela e no PDF) ──
+// Referência = verde, comparada = laranja (par validado para daltonismo);
+// a comparada também usa marcador de losango, para não depender só da cor.
+const CMP_CA='#166534',CMP_CB='#ea580c',CMP_INK='#1e293b',CMP_MUTED='#64748b',CMP_GRID='#e2e8f0';
+function cmpLegend(){return `<div class="cmp-leg"><span><i style="background:${CMP_CA}"></i>Referência</span><span><i class="dia" style="background:${CMP_CB}"></i>Comparada</span></div>`;}
+// Barras horizontais agrupadas (referência × comparada), aceita valores negativos.
+function cmpBars(groups,fmtV){
+  const W=700,LW=190,VW=90,BH=11,GAP=2,GH=BH*2+GAP+10,H=groups.length*GH+6;
+  const vals=groups.flatMap(g=>[g.a,g.b]).filter(v=>v!=null);
+  const mn=Math.min(0,...vals),mx=Math.max(0,...vals)||1,span=(mx-mn)||1,PW=W-LW-VW;
+  const x=v=>LW+(v-mn)/span*PW,x0=x(0);
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" class="cmp-svg">`;
+  s+=`<line x1="${x0}" x2="${x0}" y1="0" y2="${H-4}" stroke="${CMP_MUTED}" stroke-width="1"/>`;
+  groups.forEach((g,i)=>{const y=i*GH+4;
+    s+=`<text x="${LW-8}" y="${y+BH+2}" text-anchor="end" font-size="11" fill="${CMP_INK}" font-weight="600">${cmpEsc(g.label)}</text>`;
+    [[g.a,CMP_CA,'Referência'],[g.b,CMP_CB,'Comparada']].forEach(([v,c,n],j)=>{if(v==null)return;const yy=y+j*(BH+GAP);
+      const x1=Math.min(x0,x(v)),w=Math.max(1,Math.abs(x(v)-x0));
+      s+=`<g><title>${n}: ${cmpEsc(g.label)} = ${fmtV(v)}</title><rect x="${x1}" y="${yy}" width="${w}" height="${BH}" rx="3" fill="${c}"/>`;
+      s+=`<text x="${v<0?x1-4:x1+w+4}" y="${yy+BH-3}" text-anchor="${v<0?'end':'start'}" font-size="10" fill="${CMP_INK}" font-family="DM Mono,Consolas,monospace">${fmtV(v)}</text></g>`;});});
+  return s+'</svg>';
+}
+// Faixa de exigência (mín–máx) com o valor de cada dieta marcado.
+function cmpRangeChart(a,b,ns){
+  const W=700,LW=190,RW=150,RH=24,H=ns.length*RH+4,PW=W-LW-RW;
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" class="cmp-svg">`;
+  ns.forEach((n,i)=>{const k=n.key,y=i*RH+4,cy=y+RH/2-2;
+    const ra=a.req[k]||{},rb=b.req[k]||{},va=a.nuts.find(x=>x.key===k)?(a.val[k]||0):null,vb=b.nuts.find(x=>x.key===k)?(b.val[k]||0):null;
+    const mnR=num(ra.min),mxR=ra.max==null||num(ra.max)>=9999?null:num(ra.max);
+    const top=Math.max(va||0,vb||0,mxR||0,mnR)*1.15||1,x=v=>LW+Math.min(1,v/top)*PW;
+    s+=`<text x="${LW-8}" y="${cy+4}" text-anchor="end" font-size="11" fill="${CMP_INK}" font-weight="600">${cmpEsc((n.label||k).replace(/\s*\(.*\)$/,''))}</text>`;
+    s+=`<line x1="${LW}" x2="${LW+PW}" y1="${cy}" y2="${cy}" stroke="${CMP_GRID}" stroke-width="6" stroke-linecap="round"/>`;
+    if(mnR>0||mxR!=null)s+=`<g><title>Exigência: ${cmpRange(ra)}</title><rect x="${x(mnR)}" y="${cy-6}" width="${Math.max(2,x(mxR!=null?mxR:top)-x(mnR))}" height="12" rx="3" fill="#bbf7d0"/></g>`;
+    if(va!=null)s+=`<g><title>Referência: ${n2(va)}</title><circle cx="${x(va)}" cy="${cy}" r="6" fill="${CMP_CA}" stroke="#fff" stroke-width="2"/></g>`;
+    if(vb!=null)s+=`<g><title>Comparada: ${n2(vb)}</title><rect x="${x(vb)-6}" y="${cy-6}" width="12" height="12" transform="rotate(45 ${x(vb)} ${cy})" fill="${CMP_CB}" stroke="#fff" stroke-width="2"/></g>`;
+    s+=`<text x="${W-4}" y="${cy+4}" text-anchor="end" font-size="10" fill="${CMP_MUTED}" font-family="DM Mono,Consolas,monospace">${va!=null?n2(va):'—'} · ${vb!=null?n2(vb):'—'}</text>`;});
+  return s+'</svg>';
+}
+function cmpChartsCost(a,b){return cmpBars([{label:'Custo/animal/dia',a:a.cDay,b:b.cDay},{label:'Custo/kg MS',a:a.cMS,b:b.cMS}],v=>'R$ '+n2(v));}
+function cmpChartsComp(a,b){
+  const names=[];[a,b].forEach(d=>d.comp.forEach(c=>{if(!names.includes(c.name))names.push(c.name);}));
+  const p=(d,n)=>{const c=d.comp.find(x=>x.name===n);return c?c.pct:null;};
+  return cmpBars(names.map(n=>({label:n,a:p(a,n),b:p(b,n)})),v=>fmt(v,1)+'%');
+}
+function cmpChartsEco(t){const {ra,rb}=t;
+  return cmpBars([{label:'Custo alimentar',a:ra.custoAlim,b:rb.custoAlim},{label:'Receita de venda',a:ra.receita,b:rb.receita},{label:'Resultado',a:ra.res,b:rb.res}],v=>'R$ '+n2(v));}
+
 // ── Análise econômica do confinamento (só corte, ovinos e caprinos) ──
 // Projeta peso final, custo e receita de cada dieta no período e indica qual
 // dá o melhor resultado. Os valores digitados ficam guardados por espécie.
@@ -2191,14 +2239,15 @@ async function cmpPdf(){
   let ecoPdf='';
   if(ECO_SP[S.sp]){const t=ecoTable(a,b),e=t.e;
     const prem=`Peso inicial ${fmt(num(e.pesoIni),0)} kg • ${fmt(num(e.dias),0)} dias • `+(e.modo==='arroba'?`@ a R$ ${n2(num(e.arroba))}, rendimento ${fmt(num(e.rend),1)}%`:`venda a R$ ${n2(num(e.animal))}/animal`)+(num(e.compra)>0?` • compra R$ ${n2(num(e.compra))}`:'')+(num(e.outros)>0?` • outros custos R$ ${n2(num(e.outros))}/dia`:'');
-    ecoPdf=`<div class="box"><h3>Confinamento: qual dieta compensa mais</h3><p class="tm" style="margin-bottom:4px">${prem}</p><div class="concl" style="margin:0 0 6px">${ecoConclusion(a,b,t)}</div>${t.html}</div>`;}
-  const body=`<div class="ph"><h1>${db.icon||''} Nutricalc — Comparação de Dietas</h1><p>${cmpEsc(db.label||'')} • ${hoje}</p></div>
+    ecoPdf=`<div class="box"><h3>Confinamento: qual dieta compensa mais</h3><p class="tm" style="margin-bottom:4px">${prem}</p><div class="concl" style="margin:0 0 6px">${ecoConclusion(a,b,t)}</div>${t.html}<div class="cmp-chart">${cmpLegend()}${cmpChartsEco(t)}</div></div>`;}
+  const nsSel=CMP.nuts.map(k=>allNuts.find(n=>n.key===k)).filter(Boolean);
+  const body=`<div class="ph"><h1><span class="logo">N</span>Nutricalc — Comparação de Dietas</h1><p>${cmpEsc(db.label||'')} • ${hoje}</p></div>
 <div class="pf">${fld('Responsável',info.responsavel)}${fld('Propriedade',info.propriedade)}${fld('Animal/Lote',info.animal)}</div>
 <div class="pf"><span><b>Referência:</b> ${cmpEsc(a.name)}${a.source?' ('+cmpEsc(a.source)+(a.date?', '+cmpEsc(a.date):'')+')':''}</span><span><b>Comparada:</b> ${cmpEsc(b.name)}${b.source?' ('+cmpEsc(b.source)+(b.date?', '+cmpEsc(b.date):'')+')':''}</span></div>
 <div class="concl">${cmpConclusion(a,b,allNuts)}</div>
 ${cmpCostCards(a,b)}
-<div class="box"><h3>Exigências × dietas</h3>${cmpNutTable(a,b,allNuts)}</div>
-${ecoPdf}<div class="box"><h3>Composição (% da MS)</h3>${cmpCompTable(a,b)}</div>
+<div class="box"><h3>Exigências × dietas</h3>${cmpNutTable(a,b,allNuts)}${nsSel.length?`<div class="cmp-chart">${cmpLegend()}<span class="cmp-leg-req">Faixa de exigência</span>${cmpRangeChart(a,b,nsSel)}</div>`:''}</div>
+${ecoPdf}<div class="box"><h3>Composição (% da MS)</h3>${cmpCompTable(a,b)}<div class="cmp-chart">${cmpLegend()}${cmpChartsComp(a,b)}</div></div>
 <div class="sign"><div>Responsável técnico</div><div>Produtor</div></div>
 <div class="pft">Nutricalc • UENP • Formulação de Dietas na Nutrição Animal</div>`;
   const css=`@page{size:A4}*{margin:0;padding:0;box-sizing:border-box}body{font-family:'DM Sans','Segoe UI',Arial,sans-serif;color:#1e293b;font-size:10.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -2212,6 +2261,7 @@ ${ecoPdf}<div class="box"><h3>Composição (% da MS)</h3>${cmpCompTable(a,b)}</d
 table{width:100%;border-collapse:collapse}th{background:#e5e7eb;font-size:7.5px;text-transform:uppercase;padding:4px 3px;font-family:'DM Mono',Consolas,monospace}th:first-child,td:first-child{text-align:left;padding-left:6px}
 td{padding:3px;border-bottom:1px solid #ddd;text-align:center;font-size:9.5px;font-family:'DM Mono',Consolas,monospace}.tn{font-family:'DM Sans','Segoe UI',Arial,sans-serif;font-weight:600}.tm{color:#64748b;font-size:8.5px}
 .cmp-ok{color:#14532d;font-weight:700}.cmp-lo,.cmp-hi{color:#991b1b;font-weight:700;background:#fef2f2}.bg{font-size:7.5px;padding:1px 4px;border-radius:5px;font-family:'DM Sans',Arial,sans-serif}.bg-e{background:#fee2e2;color:#991b1b}
+.cmp-chart{margin:8px 0 6px}.cmp-leg{display:inline-flex;gap:14px;font-size:10px;color:#64748b;margin-bottom:2px}.cmp-leg span{display:inline-flex;align-items:center;gap:5px}.cmp-leg i{display:inline-block;width:10px;height:10px;border-radius:50%}.cmp-leg i.dia{border-radius:1px;transform:rotate(45deg);width:9px;height:9px}.cmp-leg-req{font-size:10px;color:#64748b;margin-left:14px;padding-left:16px;position:relative}.cmp-leg-req:before{content:'';position:absolute;left:0;top:2px;width:12px;height:8px;border-radius:2px;background:#bbf7d0}.cmp-svg{display:block;overflow:visible;max-width:600px}.ph h1{display:flex;align-items:center;justify-content:center;gap:9px}.logo{width:28px;height:28px;border-radius:7px;background:#14532d;color:#eafff2;display:inline-flex;align-items:center;justify-content:center;font-family:'Playfair Display',Georgia,serif;font-weight:900;font-size:17px}.box{page-break-inside:avoid}
 .cmp-res td{font-weight:700;border-top:2px solid #14532d}.cmp-win{background:#dcfce7;color:#14532d}
 .sign{display:flex;gap:30px;margin-top:34px}.sign div{flex:1;border-top:1px solid #333;text-align:center;font-size:9px;padding-top:3px}.pft{text-align:center;font-size:8px;color:#888;border-top:1px solid #ddd;padding-top:5px;margin-top:14px}`;
   const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Comparação de Dietas</title><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet"><style>${css}</style></head><body>${body}</body></html>`;
