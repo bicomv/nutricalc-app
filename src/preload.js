@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('api', {
   getDiets: () => ipcRenderer.invoke('db-get-diets'),
   saveDiet: (d) => ipcRenderer.invoke('db-save-diet', d),
   deleteDiet: (id) => ipcRenderer.invoke('db-delete-diet', id),
+  updateDietEco: (id, eco) => ipcRenderer.invoke('db-update-diet-eco', id, eco),
   // Custom feeds
   getCustomFeeds: (spId) => ipcRenderer.invoke('db-get-custom-feeds', spId),
   saveCustomFeed: (spId, data) => ipcRenderer.invoke('db-save-custom-feed', spId, data),

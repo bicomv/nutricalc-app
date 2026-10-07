@@ -62,6 +62,16 @@ function setupIPC() {
     return info.lastInsertRowid;
   });
   ipcMain.handle('db-delete-diet', (_, id) => { db.prepare('DELETE FROM diets WHERE id=?').run(id); return true; });
+  // Dados do confinamento (comparação de dietas) guardados dentro da dieta
+  ipcMain.handle('db-update-diet-eco', (_, id, eco) => {
+    const row = db.prepare('SELECT state_json FROM diets WHERE id=?').get(id);
+    if (!row) return false;
+    let state = {};
+    try { state = JSON.parse(row.state_json) || {}; } catch (e) {}
+    state.eco = eco;
+    db.prepare('UPDATE diets SET state_json=? WHERE id=?').run(JSON.stringify(state), id);
+    return true;
+  });
 
   // Custom feeds per species
   ipcMain.handle('db-get-custom-feeds', (_, spId) => {
