@@ -201,6 +201,9 @@ input[type="checkbox"]{width:14px;height:14px;accent-color:var(--p);cursor:point
 .cmp-m{font-size:10px;color:var(--c6);}
 .cmp-up{color:var(--rtx);}.cmp-down{color:var(--p3);}
 td.cmp-ok{color:var(--p);font-weight:700;}td.cmp-lo,td.cmp-hi{color:var(--rtx);font-weight:700;background:var(--rbg)!important;}
+.cmp-eco{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:10px;}
+.cmp-concl{background:var(--p7);border:1px solid var(--p5);border-radius:8px;padding:8px 12px;font-size:12px;line-height:1.5;margin-bottom:10px;}
+.cmp-res td{font-weight:800;border-top:2px solid var(--p);}td.cmp-win{background:var(--p7)!important;color:var(--p);}
 @media(max-width:900px){.cmp-costs{grid-template-columns:1fr;}.cmp-pick{grid-template-columns:1fr;}.cmp-vs{display:none;}}
 
 /* PRINT */
@@ -2077,6 +2080,8 @@ async function rCmp(){
   h+=`<p class="tm mt6">Cada dieta é avaliada contra as exigências com que foi salva. Valores fora da faixa ficam em vermelho.</p></div>`;
   h+=`<div class="cd"><h3 class="ss">Custo por animal por dia</h3>${cmpCostCards(a,b)}</div>`;
   h+=`<div class="cd"><h3 class="ss">Exigências × dietas</h3><div class="tw">${cmpNutTable(a,b,allNuts)}</div></div>`;
+  if(ECO_SP[S.sp]){const t=ecoTable(a,b);
+    h+=`<div class="cd"><h3 class="ss">Confinamento: qual dieta compensa mais</h3>${ecoInputs(a,b)}<div class="cmp-concl">${ecoConclusion(a,b,t)}</div><div class="tw">${t.html}</div></div>`;}
   h+=`<div class="cd"><h3 class="ss">Composição (% da MS)</h3><div class="tw">${cmpCompTable(a,b)}</div></div>`;
   el.innerHTML=h;
 }
@@ -2118,18 +2123,82 @@ function cmpConclusion(a,b,allNuts){
   if(!cmpSameReq(a,b))t+='Atenção: as dietas foram salvas com exigências diferentes.';
   return t;
 }
+// ── Análise econômica do confinamento (só corte, ovinos e caprinos) ──
+// Projeta peso final, custo e receita de cada dieta no período e indica qual
+// dá o melhor resultado. Os valores digitados ficam guardados por espécie.
+const ECO_SP={bovcorte:{pesoIni:360,dias:100,gmd:1.4,rend:52,arroba:300,animal:4500},
+  ovinos:{pesoIni:20,dias:60,gmd:.25,rend:45,arroba:300,animal:450},
+  caprinos:{pesoIni:18,dias:60,gmd:.18,rend:45,arroba:300,animal:400}};
+const ECO_KG_ARROBA=15;
+function ecoLoad(){let o={};try{o=JSON.parse(localStorage.getItem('nutricalc_cmp_eco')||'{}');}catch(e){}return o;}
+function ecoGet(){const all=ecoLoad(),d=ECO_SP[S.sp];return Object.assign({pesoIni:d.pesoIni,dias:d.dias,modo:'arroba',arroba:d.arroba,rend:d.rend,animal:d.animal,compra:0,outros:0,gmd:{}},all[S.sp]||{});}
+function ecoSet(k,v,dietId){const all=ecoLoad(),e=ecoGet();if(dietId!=null)e.gmd[dietId]=num(v);else e[k]=k==='modo'?v:num(v);all[S.sp]=e;try{localStorage.setItem('nutricalc_cmp_eco',JSON.stringify(all));}catch(err){}rCmp();}
+function ecoCalc(d,e){
+  const gmd=e.gmd[d.id]!=null?num(e.gmd[d.id]):ECO_SP[S.sp].gmd,dias=Math.max(0,num(e.dias));
+  const pesoFin=num(e.pesoIni)+gmd*dias,ganho=gmd*dias,rend=num(e.rend)/100;
+  const custoAlim=d.cDay*dias,custoTot=custoAlim+num(e.outros)*dias+num(e.compra);
+  const arrobasProd=ganho*rend/ECO_KG_ARROBA;
+  const receita=e.modo==='arroba'?pesoFin*rend/ECO_KG_ARROBA*num(e.arroba):num(e.animal);
+  const res=receita-custoTot;
+  return {gmd,dias,pesoFin,ganho,custoAlim,custoTot,arrobasProd,custoArroba:arrobasProd>0?custoAlim/arrobasProd:0,receita,res,resDia:dias>0?res/dias:0};
+}
+function ecoInputs(a,b){
+  const e=ecoGet(),inp=(k,v,step,lbl,suf)=>`<div><label class="tl">${lbl}</label><input type="number" step="${step}" class="ilg" value="${v}" onchange="ecoSet('${k}',this.value)">${suf?`<span class="tm">${suf}</span>`:''}</div>`;
+  const g=d=>e.gmd[d.id]!=null?e.gmd[d.id]:ECO_SP[S.sp].gmd;
+  let h=`<div class="cmp-eco">${inp('pesoIni',e.pesoIni,1,'Peso inicial (kg)')}${inp('dias',e.dias,1,'Dias de confinamento')}
+  <div><label class="tl">Ganho esperado — referência</label><input type="number" step="0.01" class="ilg" value="${g(a)}" onchange="ecoSet('gmd',this.value,${JSON.stringify(a.id)})"><span class="tm">kg/dia</span></div>
+  <div><label class="tl">Ganho esperado — comparada</label><input type="number" step="0.01" class="ilg" value="${g(b)}" onchange="ecoSet('gmd',this.value,${JSON.stringify(b.id)})"><span class="tm">kg/dia</span></div>
+  <div><label class="tl">Venda</label><select class="ilg" onchange="ecoSet('modo',this.value)"><option value="arroba" ${e.modo==='arroba'?'selected':''}>Por arroba (@)</option><option value="animal" ${e.modo==='animal'?'selected':''}>Por animal</option></select></div>`;
+  h+=e.modo==='arroba'?inp('arroba',e.arroba,1,'Preço da @ (R$)')+inp('rend',e.rend,.5,'Rendimento de carcaça (%)'):inp('animal',e.animal,1,'Preço por animal (R$)');
+  h+=inp('compra',e.compra,1,'Compra do animal (R$)','opcional')+inp('outros',e.outros,.01,'Outros custos (R$/animal/dia)','opcional')+`</div>`;
+  return h;
+}
+function ecoTable(a,b){
+  const e=ecoGet(),ra=ecoCalc(a,e),rb=ecoCalc(b,e),best=rb.res>ra.res+0.005?'b':(ra.res>rb.res+0.005?'a':null);
+  const dif=(x,y,m,d)=>cmpSg(y-x,m,d);
+  const row=(l,va,vb,dv)=>`<tr><td class="tn">${l}</td><td>${va}</td><td>${vb}</td><td>${dv}</td></tr>`;
+  let h=`<table class="cmp-t"><thead><tr><th>Item (por animal)</th><th>Referência</th><th>Comparada</th><th>Diferença</th></tr></thead><tbody>`;
+  h+=row('Ganho de peso esperado (kg/dia)',fmt(ra.gmd,3),fmt(rb.gmd,3),dif(ra.gmd,rb.gmd,false,3));
+  h+=row('Peso final (kg)',fmt(ra.pesoFin,1),fmt(rb.pesoFin,1),dif(ra.pesoFin,rb.pesoFin,false,1));
+  if(e.modo==='arroba'){const arr=r=>r.pesoFin*num(e.rend)/100/ECO_KG_ARROBA;
+    h+=row('Peso de carcaça final (@)',fmt(arr(ra),2),fmt(arr(rb),2),dif(arr(ra),arr(rb),false,2));
+    h+=row('@ produzidas no confinamento',fmt(ra.arrobasProd,2),fmt(rb.arrobasProd,2),dif(ra.arrobasProd,rb.arrobasProd,false,2));
+    h+=row('Custo alimentar da @ produzida','R$ '+n2(ra.custoArroba),'R$ '+n2(rb.custoArroba),dif(ra.custoArroba,rb.custoArroba,true));}
+  h+=row(`Custo alimentar (${fmt(ra.dias,0)} dias)`,'R$ '+n2(ra.custoAlim),'R$ '+n2(rb.custoAlim),dif(ra.custoAlim,rb.custoAlim,true));
+  if(num(e.compra)>0||num(e.outros)>0)h+=row('Custo total','R$ '+n2(ra.custoTot),'R$ '+n2(rb.custoTot),dif(ra.custoTot,rb.custoTot,true));
+  h+=row('Receita de venda','R$ '+n2(ra.receita),'R$ '+n2(rb.receita),dif(ra.receita,rb.receita,true));
+  h+=`<tr class="cmp-res"><td class="tn">Resultado (receita − custos)</td><td class="${best==='a'?'cmp-win':''}">R$ ${n2(ra.res)}</td><td class="${best==='b'?'cmp-win':''}">R$ ${n2(rb.res)}</td><td>${dif(ra.res,rb.res,true)}</td></tr>`;
+  h+=row('Resultado por dia','R$ '+n2(ra.resDia),'R$ '+n2(rb.resDia),dif(ra.resDia,rb.resDia,true));
+  return {html:h+'</tbody></table>',ra,rb,best,e};
+}
+function ecoConclusion(a,b,t){
+  const {ra,rb,best,e}=t;let s;
+  if(!best)s='As duas dietas dão o mesmo resultado no período.';
+  else{const w=best==='a'?a:b,rw=best==='a'?ra:rb,rl=best==='a'?rb:ra;
+    s=`<b>${cmpEsc(w.name)}</b> compensa mais: R$ ${n2(rw.res-rl.res)} a mais por animal em ${fmt(rw.dias,0)} dias`;
+    if(rw.custoAlim>rl.custoAlim+0.005)s+=`, mesmo custando R$ ${n2(rw.custoAlim-rl.custoAlim)} a mais de alimentação`;
+    s+='.';}
+  if(e.modo==='animal'&&Math.abs(ra.gmd-rb.gmd)>1e-9)s+=' Com preço fixo por animal, o ganho de peso não muda a receita; só o custo pesa.';
+  if(num(e.compra)<=0)s+=' A compra do animal não foi informada, então o resultado não desconta esse valor.';
+  return s;
+}
+
 async function cmpPdf(){
   const a=CMP.list.find(d=>d.id===CMP.ref),b=CMP.list.find(d=>d.id===CMP.cmp);if(!a||!b)return;
   const allNuts=[];[a,b].forEach(d=>d.nuts.forEach(n=>{if(!allNuts.find(x=>x.key===n.key))allNuts.push(n);}));
   const db=DB[S.sp]||{},info=S.info||{},hoje=new Date().toLocaleDateString('pt-BR');
   const fld=(l,v)=>v?`<span><b>${l}:</b> ${cmpEsc(v)}</span>`:'';
+  let ecoPdf='';
+  if(ECO_SP[S.sp]){const t=ecoTable(a,b),e=t.e;
+    const prem=`Peso inicial ${fmt(num(e.pesoIni),0)} kg • ${fmt(num(e.dias),0)} dias • `+(e.modo==='arroba'?`@ a R$ ${n2(num(e.arroba))}, rendimento ${fmt(num(e.rend),1)}%`:`venda a R$ ${n2(num(e.animal))}/animal`)+(num(e.compra)>0?` • compra R$ ${n2(num(e.compra))}`:'')+(num(e.outros)>0?` • outros custos R$ ${n2(num(e.outros))}/dia`:'');
+    ecoPdf=`<div class="box"><h3>Confinamento: qual dieta compensa mais</h3><p class="tm" style="margin-bottom:4px">${prem}</p><div class="concl" style="margin:0 0 6px">${ecoConclusion(a,b,t)}</div>${t.html}</div>`;}
   const body=`<div class="ph"><h1>${db.icon||''} Nutricalc — Comparação de Dietas</h1><p>${cmpEsc(db.label||'')} • ${hoje}</p></div>
 <div class="pf">${fld('Responsável',info.responsavel)}${fld('Propriedade',info.propriedade)}${fld('Animal/Lote',info.animal)}</div>
 <div class="pf"><span><b>Referência:</b> ${cmpEsc(a.name)}${a.source?' ('+cmpEsc(a.source)+(a.date?', '+cmpEsc(a.date):'')+')':''}</span><span><b>Comparada:</b> ${cmpEsc(b.name)}${b.source?' ('+cmpEsc(b.source)+(b.date?', '+cmpEsc(b.date):'')+')':''}</span></div>
 <div class="concl">${cmpConclusion(a,b,allNuts)}</div>
 ${cmpCostCards(a,b)}
 <div class="box"><h3>Exigências × dietas</h3>${cmpNutTable(a,b,allNuts)}</div>
-<div class="box"><h3>Composição (% da MS)</h3>${cmpCompTable(a,b)}</div>
+${ecoPdf}<div class="box"><h3>Composição (% da MS)</h3>${cmpCompTable(a,b)}</div>
 <div class="sign"><div>Responsável técnico</div><div>Produtor</div></div>
 <div class="pft">Nutricalc • UENP • Formulação de Dietas na Nutrição Animal</div>`;
   const css=`@page{size:A4}*{margin:0;padding:0;box-sizing:border-box}body{font-family:'DM Sans','Segoe UI',Arial,sans-serif;color:#1e293b;font-size:10.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -2143,7 +2212,8 @@ ${cmpCostCards(a,b)}
 table{width:100%;border-collapse:collapse}th{background:#e5e7eb;font-size:7.5px;text-transform:uppercase;padding:4px 3px;font-family:'DM Mono',Consolas,monospace}th:first-child,td:first-child{text-align:left;padding-left:6px}
 td{padding:3px;border-bottom:1px solid #ddd;text-align:center;font-size:9.5px;font-family:'DM Mono',Consolas,monospace}.tn{font-family:'DM Sans','Segoe UI',Arial,sans-serif;font-weight:600}.tm{color:#64748b;font-size:8.5px}
 .cmp-ok{color:#14532d;font-weight:700}.cmp-lo,.cmp-hi{color:#991b1b;font-weight:700;background:#fef2f2}.bg{font-size:7.5px;padding:1px 4px;border-radius:5px;font-family:'DM Sans',Arial,sans-serif}.bg-e{background:#fee2e2;color:#991b1b}
-.sign{display:flex;gap:30px;margin-top:46px}.sign div{flex:1;border-top:1px solid #333;text-align:center;font-size:9px;padding-top:3px}.pft{text-align:center;font-size:8px;color:#888;border-top:1px solid #ddd;padding-top:5px;margin-top:14px}`;
+.cmp-res td{font-weight:700;border-top:2px solid #14532d}.cmp-win{background:#dcfce7;color:#14532d}
+.sign{display:flex;gap:30px;margin-top:34px}.sign div{flex:1;border-top:1px solid #333;text-align:center;font-size:9px;padding-top:3px}.pft{text-align:center;font-size:8px;color:#888;border-top:1px solid #ddd;padding-top:5px;margin-top:14px}`;
   const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Comparação de Dietas</title><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet"><style>${css}</style></head><body>${body}</body></html>`;
   const nome=('Comparacao - '+a.name+' x '+b.name).replace(/[\\/:*?"<>|]/g,'-').slice(0,120)+'.pdf';
   if(typeof HAS_API!=='undefined'&&HAS_API&&window.api.savePdf){
