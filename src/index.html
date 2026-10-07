@@ -202,7 +202,7 @@ input[type="checkbox"]{width:14px;height:14px;accent-color:var(--p);cursor:point
 .cmp-up{color:var(--rtx);}.cmp-down{color:var(--p3);}
 td.cmp-ok{color:var(--p);font-weight:700;}td.cmp-lo,td.cmp-hi{color:var(--rtx);font-weight:700;background:var(--rbg)!important;}
 .cmp-chart{margin:8px 0 6px}.cmp-leg{display:inline-flex;gap:14px;font-size:10px;color:#64748b;margin-bottom:2px}.cmp-leg span{display:inline-flex;align-items:center;gap:5px}.cmp-leg i{display:inline-block;width:10px;height:10px;border-radius:50%}.cmp-leg i.dia{border-radius:1px;transform:rotate(45deg);width:9px;height:9px}.cmp-leg-req{font-size:10px;color:#64748b;margin-left:14px;padding-left:16px;position:relative}.cmp-leg-req:before{content:'';position:absolute;left:0;top:2px;width:12px;height:8px;border-radius:2px;background:#bbf7d0}.cmp-svg{display:block;overflow:visible;max-width:820px}
-.cmp-per table{min-width:0;max-width:640px}.cmp-per{max-height:none;margin-bottom:10px;border:none}
+.cmp-per table{min-width:0;max-width:640px}.cmp-date{width:140px;}.cmp-per{max-height:none;margin-bottom:10px;border:none}
 .cmp-eco{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:10px;}
 .cmp-concl{background:var(--p7);border:1px solid var(--p5);border-radius:8px;padding:8px 12px;font-size:12px;line-height:1.5;margin-bottom:10px;}
 .cmp-res td{font-weight:800;border-top:2px solid var(--p);}td.cmp-win{background:var(--p7)!important;color:var(--p);}
@@ -616,7 +616,7 @@ function initSpecies(sp){
   }else{S.req={cms:10,n:{}};}
   // Garantir que todos nutrientes enabled tenham entrada em req.n
   S.nuts.filter(n=>n.enabled).forEach(n=>{if(!S.req.n[n.key])S.req.n[n.key]={min:0,max:9999};});
-  S.fc={};S.mMS={};S.mMN={};S.optR=null;S.nxId=d.feeds.length+200;S.edId=null;S.search='';S.onlySelected=false;S.loadedDietId=null;
+  S.fc={};S.mMS={};S.mMN={};S.optR=null;S.eco=null;S.nxId=d.feeds.length+200;S.edId=null;S.search='';S.onlySelected=false;S.loadedDietId=null;
   S.info={responsavel:S.info.responsavel||'',dieta:'',propriedade:S.info.propriedade||'',animal:''};
   $('landing').style.display='none';$('app').classList.add('on');($('hI').tagName==='IMG'?($('hI').src=SP_ICONS[S.sp]?'data:image/png;base64,'+SP_ICONS[S.sp]:''):$('hI').textContent=d.icon);$('hB').textContent=d.label;
   document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('on',i===0));
@@ -2055,7 +2055,7 @@ function cmpSummary(d){
   const cms=num(s.req&&s.req.cms)||10;
   let cMS=0;fl.forEach((f,i)=>{cMS+=props[i]*(num(f.custoKg)/((num(f.ms)||100)/100));});
   const comp=[];fl.forEach((f,i)=>{if(props[i]>.00001)comp.push({name:f.name,pct:props[i]*100,cKgMS:num(f.custoKg)/((num(f.ms)||100)/100)});});
-  return {id:d.id,name:d.name,date:d.date||'',source:d.source||'',nuts,val,req:(s.req&&s.req.n)||{},cms,cMS,cDay:cMS*cms,comp,info:s.info||{}};
+  return {id:d.id,name:d.name,date:d.date||'',source:d.source||'',eco:s.eco||null,nuts,val,req:(s.req&&s.req.n)||{},cms,cMS,cDay:cMS*cms,comp,info:s.info||{}};
 }
 function cmpDefaultNuts(d){
   const on=d.nuts.filter(n=>n.enabled&&n.key.toUpperCase()!=='MM').map(n=>n.key);
@@ -2183,37 +2183,75 @@ const ECO_SP={bovcorte:{pesoIni:360,dias:100,gmd:1.4,rend:52,arroba:300,animal:4
   caprinos:{pesoIni:18,dias:60,gmd:.18,rend:45,arroba:300,animal:400}};
 const ECO_KG_ARROBA=15;
 function ecoLoad(){let o={};try{o=JSON.parse(localStorage.getItem('nutricalc_cmp_eco')||'{}');}catch(e){}return o;}
-function ecoGet(){const all=ecoLoad(),d=ECO_SP[S.sp];return Object.assign({pesoIni:d.pesoIni,modo:'arroba',rend:d.rend,compra:0,outros:0,per:{},gmd:{}},all[S.sp]||{});}
-// Ganho, dias e preço de venda são de cada dieta; os demais valores são comuns.
-function ecoPer(e,id){const d=ECO_SP[S.sp],p=(e.per&&e.per[id])||{};
-  return {gmd:p.gmd!=null?num(p.gmd):(e.gmd&&e.gmd[id]!=null?num(e.gmd[id]):d.gmd),dias:p.dias!=null?num(p.dias):(e.dias!=null?num(e.dias):d.dias),
-    arroba:p.arroba!=null?num(p.arroba):(e.arroba!=null?num(e.arroba):d.arroba),animal:p.animal!=null?num(p.animal):(e.animal!=null?num(e.animal):d.animal)};}
+function ecoGet(){const all=ecoLoad(),d=ECO_SP[S.sp];return Object.assign({modo:'arroba',per:{},gmd:{}},all[S.sp]||{});}
+// Dados do confinamento de cada dieta (datas, pesos, ganho, preço, custos).
+// Ficam salvos dentro da própria dieta (state.eco); valores antigos guardados
+// por espécie servem só de ponto de partida.
+const ECO_KEYS=['dataEnt','dataSai','dias','pesoEnt','gmd','rend','preco','compra','outros'];
+function ecoDiasEntre(a,b){if(!a||!b)return null;const d=(new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/864e5;return isFinite(d)&&d>0?Math.round(d):null;}
+function ecoPer(e,d){
+  const sp=ECO_SP[S.sp],old=(e.per&&e.per[d.id])||{},x=Object.assign({},d.eco||{});
+  const pick=(k,def)=>x[k]!=null&&x[k]!==''?x[k]:def;
+  const legacyPreco=e.modo==='arroba'?(old.arroba!=null?old.arroba:(e.arroba!=null?e.arroba:sp.arroba)):(old.animal!=null?old.animal:(e.animal!=null?e.animal:sp.animal));
+  const p={dataEnt:pick('dataEnt',''),dataSai:pick('dataSai',''),
+    pesoEnt:num(pick('pesoEnt',e.pesoIni!=null?e.pesoIni:sp.pesoIni)),
+    gmd:num(pick('gmd',old.gmd!=null?old.gmd:(e.gmd&&e.gmd[d.id]!=null?e.gmd[d.id]:sp.gmd))),
+    rend:num(pick('rend',e.rend!=null?e.rend:sp.rend)),
+    compra:num(pick('compra',e.compra||0)),outros:num(pick('outros',e.outros||0))};
+  p.preco=num(x['preco_'+e.modo]!=null?x['preco_'+e.modo]:legacyPreco);
+  const dd=ecoDiasEntre(p.dataEnt,p.dataSai);
+  p.dias=dd!=null?dd:num(pick('dias',old.dias!=null?old.dias:(e.dias!=null?e.dias:sp.dias)));
+  p.pesoSai=p.pesoEnt+p.gmd*p.dias;
+  return p;
+}
 function ecoSave(e){const all=ecoLoad();all[S.sp]=e;try{localStorage.setItem('nutricalc_cmp_eco',JSON.stringify(all));}catch(err){}rCmp();}
-function ecoSet(k,v){const e=ecoGet();e[k]=k==='modo'?v:num(v);ecoSave(e);}
-function ecoSetPer(id,k,v){const e=ecoGet();e.per=e.per||{};e.per[id]=Object.assign(ecoPer(e,id),{[k]:num(v)});ecoSave(e);}
+function ecoSet(k,v){const e=ecoGet();e[k]=v;ecoSave(e);}
+async function ecoSetPer(id,k,v){
+  const d=CMP.list.find(x=>String(x.id)===String(id));if(!d)return;
+  const e=ecoGet(),p=ecoPer(e,d),eco=Object.assign({},d.eco||{});
+  // grava o estado atual completo, para a dieta guardar todos os valores exibidos
+  ['dataEnt','dataSai','pesoEnt','gmd','rend','compra','outros'].forEach(q=>{if(eco[q]==null)eco[q]=p[q];});
+  if(eco.dias==null)eco.dias=p.dias;if(eco['preco_'+e.modo]==null)eco['preco_'+e.modo]=p.preco;
+  if(k==='dataEnt'||k==='dataSai'){eco[k]=v||'';const dd=ecoDiasEntre(k==='dataEnt'?v:eco.dataEnt,k==='dataSai'?v:eco.dataSai);if(dd!=null)eco.dias=dd;}
+  else if(k==='dias'){eco.dias=Math.max(0,num(v));if(eco.dataEnt){const t=new Date(eco.dataEnt+'T00:00:00');t.setDate(t.getDate()+eco.dias);eco.dataSai=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');}}
+  else if(k==='pesoSai'){eco.gmd=p.dias>0?(num(v)-num(eco.pesoEnt))/p.dias:0;}
+  else if(k==='preco')eco['preco_'+e.modo]=num(v);
+  else eco[k]=num(v);
+  d.eco=eco;await ecoPersist(d,eco);rCmp();
+}
+async function ecoPersist(d,eco){
+  try{
+    if(typeof HAS_API!=='undefined'&&HAS_API&&window.api.updateDietEco){await window.api.updateDietEco(d.id,eco);}
+    else{const i=String(d.id).startsWith('m')?num(String(d.id).slice(1)):-1;if(S.diets&&S.diets[i]&&S.diets[i].state)S.diets[i].state.eco=eco;}
+    if(S.loadedDietId===d.id)S.eco=JSON.parse(JSON.stringify(eco));
+  }catch(err){console.error('ecoPersist:',err);nAlert('Erro ao salvar os dados do confinamento: '+err.message);}
+}
 function ecoCalc(d,e){
-  const p=ecoPer(e,d.id),gmd=p.gmd,dias=Math.max(0,p.dias);
-  const pesoFin=num(e.pesoIni)+gmd*dias,ganho=gmd*dias,rend=num(e.rend)/100;
-  const custoAlim=d.cDay*dias,custoTot=custoAlim+num(e.outros)*dias+num(e.compra);
-  const arrobasProd=ganho*rend/ECO_KG_ARROBA;
-  const preco=e.modo==='arroba'?p.arroba:p.animal;
-  const receita=e.modo==='arroba'?pesoFin*rend/ECO_KG_ARROBA*p.arroba:p.animal;
+  const p=ecoPer(e,d),dias=Math.max(0,p.dias),gmd=p.gmd,rend=p.rend/100;
+  const pesoFin=p.pesoSai,ganho=gmd*dias;
+  const custoAlim=d.cDay*dias,custoTot=custoAlim+p.outros*dias+p.compra;
+  const arrobasProd=ganho*rend/ECO_KG_ARROBA,arrobasFin=pesoFin*rend/ECO_KG_ARROBA;
+  const receita=e.modo==='arroba'?arrobasFin*p.preco:p.preco;
   const res=receita-custoTot;
-  return {gmd,dias,preco,pesoFin,ganho,custoAlim,custoTot,arrobasProd,custoArroba:arrobasProd>0?custoAlim/arrobasProd:0,receita,res,resDia:dias>0?res/dias:0};
+  return {gmd,dias,preco:p.preco,dataEnt:p.dataEnt,dataSai:p.dataSai,pesoEnt:p.pesoEnt,rend:p.rend,compra:p.compra,outros:p.outros,pesoFin,ganho,arrobasFin,custoAlim,custoTot,arrobasProd,custoArroba:arrobasProd>0?custoAlim/arrobasProd:0,receita,res,resDia:dias>0?res/dias:0};
 }
 function ecoInputs(a,b){
-  const e=ecoGet(),inp=(k,v,step,lbl,suf)=>`<div><label class="tl">${lbl}</label><input type="number" step="${step}" class="ilg" value="${v}" onchange="ecoSet('${k}',this.value)">${suf?`<span class="tm">${suf}</span>`:''}</div>`;
-  let h=`<div class="cmp-eco">${inp('pesoIni',e.pesoIni,1,'Peso inicial (kg)')}
-  <div><label class="tl">Venda</label><select class="ilg" onchange="ecoSet('modo',this.value)"><option value="arroba" ${e.modo==='arroba'?'selected':''}>Por arroba (@)</option><option value="animal" ${e.modo==='animal'?'selected':''}>Por animal</option></select></div>`;
-  if(e.modo==='arroba')h+=inp('rend',e.rend,.5,'Rendimento de carcaça (%)');
-  h+=inp('compra',e.compra,1,'Compra do animal (R$)','opcional')+inp('outros',e.outros,.01,'Outros custos (R$/animal/dia)','opcional')+`</div>`;
-  const pa=ecoPer(e,a.id),pb=ecoPer(e,b.id),pk=e.modo==='arroba'?'arroba':'animal';
-  const cell=(id,k,v,step)=>`<td><input type="number" step="${step}" class="ism" value="${v}" onchange="ecoSetPer(${cmpEsc(JSON.stringify(id))},'${k}',this.value)"></td>`;
-  h+=`<div class="tw cmp-per"><table class="cmp-t"><thead><tr><th>Por dieta</th><th>Referência</th><th>Comparada</th></tr></thead><tbody>
-  <tr><td class="tn">Ganho de peso esperado (kg/dia)</td>${cell(a.id,'gmd',pa.gmd,.01)}${cell(b.id,'gmd',pb.gmd,.01)}</tr>
-  <tr><td class="tn">Dias de confinamento</td>${cell(a.id,'dias',pa.dias,1)}${cell(b.id,'dias',pb.dias,1)}</tr>
-  <tr><td class="tn">${e.modo==='arroba'?'Preço de venda da @ (R$)':'Preço de venda por animal (R$)'}</td>${cell(a.id,pk,pa[pk],1)}${cell(b.id,pk,pb[pk],1)}</tr>
-  </tbody></table></div>`;
+  const e=ecoGet(),pa=ecoPer(e,a),pb=ecoPer(e,b);
+  let h=`<div class="cmp-eco"><div><label class="tl">Venda</label><select class="ilg" onchange="ecoSet('modo',this.value)"><option value="arroba" ${e.modo==='arroba'?'selected':''}>Por arroba (@)</option><option value="animal" ${e.modo==='animal'?'selected':''}>Por animal</option></select></div></div>`;
+  const cell=(d,k,v,type,step)=>`<td><input type="${type}" ${step?`step="${step}"`:''} class="${type==='date'?'cmp-date':'ism'}" value="${v}" onchange="ecoSetPer(${cmpEsc(JSON.stringify(d.id))},'${k}',this.value)"></td>`;
+  const r=(lbl,k,type,step,fa,fb)=>`<tr><td class="tn">${lbl}</td>${cell(a,k,fa,type,step)}${cell(b,k,fb,type,step)}</tr>`;
+  h+=`<div class="tw cmp-per"><table class="cmp-t"><thead><tr><th>Dados de cada dieta</th><th>Referência</th><th>Comparada</th></tr></thead><tbody>`;
+  h+=r('Data de entrada','dataEnt','date','',pa.dataEnt,pb.dataEnt);
+  h+=r('Data de saída','dataSai','date','',pa.dataSai,pb.dataSai);
+  h+=r('Dias de confinamento','dias','number',1,pa.dias,pb.dias);
+  h+=r('Peso de entrada (kg)','pesoEnt','number',.5,pa.pesoEnt,pb.pesoEnt);
+  h+=r('Ganho de peso esperado (kg/dia)','gmd','number',.01,+pa.gmd.toFixed(3),+pb.gmd.toFixed(3));
+  h+=r('Peso de saída (kg)','pesoSai','number',.5,+pa.pesoSai.toFixed(1),+pb.pesoSai.toFixed(1));
+  if(e.modo==='arroba')h+=r('Rendimento de carcaça (%)','rend','number',.5,pa.rend,pb.rend);
+  h+=r(e.modo==='arroba'?'Preço de venda da @ (R$)':'Preço de venda por animal (R$)','preco','number',1,pa.preco,pb.preco);
+  h+=r('Compra do animal (R$)','compra','number',1,pa.compra,pb.compra);
+  h+=r('Outros custos (R$/animal/dia)','outros','number',.01,pa.outros,pb.outros);
+  h+=`</tbody></table></div><p class="tm mb10">Com as datas preenchidas, os dias são calculados sozinhos. Mudar o peso de saída recalcula o ganho por dia. Esses dados ficam salvos junto com cada dieta.</p>`;
   return h;
 }
 function ecoTable(a,b){
@@ -2222,16 +2260,23 @@ function ecoTable(a,b){
   const dif=(x,y,m,d)=>cmpSg(y-x,m,d);
   const row=(l,va,vb,dv)=>`<tr><td class="tn">${l}</td><td>${va}</td><td>${vb}</td><td>${dv}</td></tr>`;
   let h=`<table class="cmp-t"><thead><tr><th>Item (por animal)</th><th>Referência</th><th>Comparada</th><th>Diferença</th></tr></thead><tbody>`;
-  h+=row('Ganho de peso esperado (kg/dia)',fmt(ra.gmd,3),fmt(rb.gmd,3),dif(ra.gmd,rb.gmd,false,3));
+  const dt=v=>v?v.split('-').reverse().join('/'):'—';
+  if(ra.dataEnt||rb.dataEnt)h+=row('Período',`${dt(ra.dataEnt)} a ${dt(ra.dataSai)}`,`${dt(rb.dataEnt)} a ${dt(rb.dataSai)}`,'');
   h+=row('Dias de confinamento',fmt(ra.dias,0),fmt(rb.dias,0),dif(ra.dias,rb.dias,false,0));
+  h+=row('Peso de entrada (kg)',fmt(ra.pesoEnt,1),fmt(rb.pesoEnt,1),dif(ra.pesoEnt,rb.pesoEnt,false,1));
+  h+=row('Ganho de peso (kg/dia)',fmt(ra.gmd,3),fmt(rb.gmd,3),dif(ra.gmd,rb.gmd,false,3));
+  h+=row('Ganho no período (kg)',fmt(ra.ganho,1),fmt(rb.ganho,1),dif(ra.ganho,rb.ganho,false,1));
   h+=row(e.modo==='arroba'?'Preço da @':'Preço por animal','R$ '+n2(ra.preco),'R$ '+n2(rb.preco),dif(ra.preco,rb.preco,true));
-  h+=row('Peso final (kg)',fmt(ra.pesoFin,1),fmt(rb.pesoFin,1),dif(ra.pesoFin,rb.pesoFin,false,1));
-  if(e.modo==='arroba'){const arr=r=>r.pesoFin*num(e.rend)/100/ECO_KG_ARROBA;
-    h+=row('Peso de carcaça final (@)',fmt(arr(ra),2),fmt(arr(rb),2),dif(arr(ra),arr(rb),false,2));
+  h+=row('Peso de saída (kg)',fmt(ra.pesoFin,1),fmt(rb.pesoFin,1),dif(ra.pesoFin,rb.pesoFin,false,1));
+  if(e.modo==='arroba'){const arr=r=>r.arrobasFin;
+    h+=row('Rendimento de carcaça',fmt(ra.rend,1)+'%',fmt(rb.rend,1)+'%',dif(ra.rend,rb.rend,false,1));
+    h+=row('Peso de carcaça na saída (@)',fmt(arr(ra),2),fmt(arr(rb),2),dif(arr(ra),arr(rb),false,2));
     h+=row('@ produzidas no confinamento',fmt(ra.arrobasProd,2),fmt(rb.arrobasProd,2),dif(ra.arrobasProd,rb.arrobasProd,false,2));
     h+=row('Custo alimentar da @ produzida','R$ '+n2(ra.custoArroba),'R$ '+n2(rb.custoArroba),dif(ra.custoArroba,rb.custoArroba,true));}
   h+=row('Custo alimentar no período','R$ '+n2(ra.custoAlim),'R$ '+n2(rb.custoAlim),dif(ra.custoAlim,rb.custoAlim,true));
-  if(num(e.compra)>0||num(e.outros)>0)h+=row('Custo total','R$ '+n2(ra.custoTot),'R$ '+n2(rb.custoTot),dif(ra.custoTot,rb.custoTot,true));
+  if(ra.compra>0||rb.compra>0)h+=row('Compra do animal','R$ '+n2(ra.compra),'R$ '+n2(rb.compra),dif(ra.compra,rb.compra,true));
+  if(ra.outros>0||rb.outros>0)h+=row('Outros custos no período','R$ '+n2(ra.outros*ra.dias),'R$ '+n2(rb.outros*rb.dias),dif(ra.outros*ra.dias,rb.outros*rb.dias,true));
+  if(ra.compra>0||rb.compra>0||ra.outros>0||rb.outros>0)h+=row('Custo total','R$ '+n2(ra.custoTot),'R$ '+n2(rb.custoTot),dif(ra.custoTot,rb.custoTot,true));
   h+=row('Receita de venda','R$ '+n2(ra.receita),'R$ '+n2(rb.receita),dif(ra.receita,rb.receita,true));
   const win=(w)=>best===w?'cmp-win':'';
   h+=`<tr class="${porDia?'':'cmp-res'}"><td class="tn">Resultado (receita − custos)</td><td class="${porDia?'':win('a')}">R$ ${n2(ra.res)}</td><td class="${porDia?'':win('b')}">R$ ${n2(rb.res)}</td><td>${dif(ra.res,rb.res,true)}</td></tr>`;
@@ -2246,7 +2291,7 @@ function ecoConclusion(a,b,t){
     else{s=`<b>${cmpEsc(w.name)}</b> compensa mais: R$ ${n2(rw.res-rl.res)} a mais por animal em ${fmt(rw.dias,0)} dias`;
       if(rw.custoAlim>rl.custoAlim+0.005)s+=`, mesmo custando R$ ${n2(rw.custoAlim-rl.custoAlim)} a mais de alimentação`;}
     s+='.';}
-  if(num(e.compra)<=0)s+=porDia?' <b>Atenção:</b> informe a compra do animal. Com períodos diferentes, sem esse valor o resultado por dia fica distorcido.':' A compra do animal não foi informada, então o resultado não desconta esse valor.';
+  if(ra.compra<=0||rb.compra<=0)s+=porDia?' <b>Atenção:</b> informe a compra do animal. Com períodos diferentes, sem esse valor o resultado por dia fica distorcido.':' A compra do animal não foi informada, então o resultado não desconta esse valor.';
   return s;
 }
 
@@ -2257,7 +2302,7 @@ async function cmpPdf(){
   const fld=(l,v)=>v?`<span><b>${l}:</b> ${cmpEsc(v)}</span>`:'';
   let ecoPdf='';
   if(ECO_SP[S.sp]){const t=ecoTable(a,b),e=t.e;
-    const prem=`Peso inicial ${fmt(num(e.pesoIni),0)} kg • `+(e.modo==='arroba'?`venda por @, rendimento de carcaça ${fmt(num(e.rend),1)}%`:'venda por animal')+(num(e.compra)>0?` • compra R$ ${n2(num(e.compra))}`:'')+(num(e.outros)>0?` • outros custos R$ ${n2(num(e.outros))}/dia`:'');
+    const prem=e.modo==='arroba'?'Venda por arroba (1 @ = 15 kg de carcaça)':'Venda por animal';
     ecoPdf=`<div class="box"><h3>Confinamento: qual dieta compensa mais</h3><p class="tm" style="margin-bottom:4px">${prem}</p><div class="concl" style="margin:0 0 6px">${ecoConclusion(a,b,t)}</div>${t.html}<div class="cmp-chart">${cmpLegend()}${cmpChartsEco(t)}</div></div>`;}
   const nsSel=CMP.nuts.map(k=>allNuts.find(n=>n.key===k)).filter(Boolean);
   const body=`<div class="ph"><h1><span class="logo">N</span>Nutricalc — Comparação de Dietas</h1><p>${cmpEsc(db.label||'')} • ${hoje}</p></div>
@@ -2384,6 +2429,7 @@ if (HAS_API) {
       if (s.req) S.req = JSON.parse(JSON.stringify(s.req));
       if (s.fc) S.fc = JSON.parse(JSON.stringify(s.fc));
       if (s.info) S.info = JSON.parse(JSON.stringify(s.info));
+      S.eco = s.eco ? JSON.parse(JSON.stringify(s.eco)) : null;
       if (s.optR) { S.optR = JSON.parse(JSON.stringify(s.optR)); goTab('res'); rRes(); }
       else if (s.mMS && Object.keys(s.mMS).length) { S.mMS = JSON.parse(JSON.stringify(s.mMS)); goTab('teMS'); rTeMS(); }
       else if (s.mMN && Object.keys(s.mMN).length) { S.mMN = JSON.parse(JSON.stringify(s.mMN)); goTab('teMN'); rTeMN(); }
@@ -2592,6 +2638,7 @@ async function saveCurrentDiet(){
 
   const cost=(S.optR && S.optR.cDay) ? S.optR.cDay : 0;
   const state={ sp:S.sp, sel:S.sel, req:S.req, fc:S.fc, optR:S.optR, nuts:S.nuts, feeds:S.feeds, mMS:S.mMS, mMN:S.mMN, info:S.info };
+  if(updateExisting && S.eco) state.eco=S.eco; // mantém os dados do confinamento da dieta atualizada
   const payload={ name:nm, species_id:S.sp, species_label:(DB[S.sp]?DB[S.sp].label:S.sp), date:new Date().toLocaleDateString('pt-BR'), cost_day:cost, source:'Manual', state };
   try{
     if(hasApi){
