@@ -2248,7 +2248,7 @@ async function cmpPdf(){
 ${cmpCostCards(a,b)}
 <div class="box"><h3>Exigências × dietas</h3>${cmpNutTable(a,b,allNuts)}${nsSel.length?`<div class="cmp-chart">${cmpLegend()}<span class="cmp-leg-req">Faixa de exigência</span>${cmpRangeChart(a,b,nsSel)}</div>`:''}</div>
 ${ecoPdf}<div class="box"><h3>Composição (% da MS)</h3>${cmpCompTable(a,b)}<div class="cmp-chart">${cmpLegend()}${cmpChartsComp(a,b)}</div></div>
-<div class="sign"><div>Responsável técnico</div><div>Produtor</div></div>
+<div class="sign"><div>Responsável técnico</div></div>
 <div class="pft">Nutricalc • UENP • Formulação de Dietas na Nutrição Animal</div>`;
   const css=`@page{size:A4}*{margin:0;padding:0;box-sizing:border-box}body{font-family:'DM Sans','Segoe UI',Arial,sans-serif;color:#1e293b;font-size:10.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .ph{text-align:center;border-bottom:3px solid #14532d;padding-bottom:8px;margin-bottom:8px}.ph h1{font-family:'Playfair Display',Georgia,serif;font-size:19px;color:#14532d}.ph p{font-size:9px;color:#555;margin-top:2px}
@@ -2263,7 +2263,7 @@ td{padding:3px;border-bottom:1px solid #ddd;text-align:center;font-size:9.5px;fo
 .cmp-ok{color:#14532d;font-weight:700}.cmp-lo,.cmp-hi{color:#991b1b;font-weight:700;background:#fef2f2}.bg{font-size:7.5px;padding:1px 4px;border-radius:5px;font-family:'DM Sans',Arial,sans-serif}.bg-e{background:#fee2e2;color:#991b1b}
 .cmp-chart{margin:8px 0 6px}.cmp-leg{display:inline-flex;gap:14px;font-size:10px;color:#64748b;margin-bottom:2px}.cmp-leg span{display:inline-flex;align-items:center;gap:5px}.cmp-leg i{display:inline-block;width:10px;height:10px;border-radius:50%}.cmp-leg i.dia{border-radius:1px;transform:rotate(45deg);width:9px;height:9px}.cmp-leg-req{font-size:10px;color:#64748b;margin-left:14px;padding-left:16px;position:relative}.cmp-leg-req:before{content:'';position:absolute;left:0;top:2px;width:12px;height:8px;border-radius:2px;background:#bbf7d0}.cmp-svg{display:block;overflow:visible;max-width:600px}.ph h1{display:flex;align-items:center;justify-content:center;gap:9px}.logo{width:28px;height:28px;border-radius:7px;background:#14532d;color:#eafff2;display:inline-flex;align-items:center;justify-content:center;font-family:'Playfair Display',Georgia,serif;font-weight:900;font-size:17px}.box{page-break-inside:avoid}
 .cmp-res td{font-weight:700;border-top:2px solid #14532d}.cmp-win{background:#dcfce7;color:#14532d}
-.sign{display:flex;gap:30px;margin-top:34px}.sign div{flex:1;border-top:1px solid #333;text-align:center;font-size:9px;padding-top:3px}.pft{text-align:center;font-size:8px;color:#888;border-top:1px solid #ddd;padding-top:5px;margin-top:14px}`;
+.sign{display:flex;justify-content:center;margin-top:34px}.sign div{width:45%;border-top:1px solid #333;text-align:center;font-size:9px;padding-top:3px}.pft{text-align:center;font-size:8px;color:#888;border-top:1px solid #ddd;padding-top:5px;margin-top:14px}`;
   const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Comparação de Dietas</title><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet"><style>${css}</style></head><body>${body}</body></html>`;
   const nome=('Comparacao - '+a.name+' x '+b.name).replace(/[\\/:*?"<>|]/g,'-').slice(0,120)+'.pdf';
   if(typeof HAS_API!=='undefined'&&HAS_API&&window.api.savePdf){
