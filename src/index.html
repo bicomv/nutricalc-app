@@ -198,6 +198,7 @@ input[type="checkbox"]{width:14px;height:14px;accent-color:var(--p);cursor:point
 .cmp-tag.best{background:var(--p);color:#fff;}
 .cmp-n{font-weight:700;font-size:12px;overflow-wrap:anywhere;}
 .cmp-v{font-family:var(--fm);font-size:20px;color:var(--p);}
+.cmp-v small{font-size:11px;color:var(--tm,#64748b);margin-left:3px;}.cmp-v2{font-size:16px;}
 .cmp-m{font-size:10px;color:var(--c6);}
 .cmp-up{color:var(--rtx);}.cmp-down{color:var(--p3);}
 td.cmp-ok{color:var(--p);font-weight:700;}td.cmp-lo,td.cmp-hi{color:var(--rtx);font-weight:700;background:var(--rbg)!important;}
@@ -2028,6 +2029,10 @@ else if(s.mMN){S.mMN=JSON.parse(JSON.stringify(s.mMN));goTab('teMN');rTeMN();}}
 // custo por animal/dia, teores dos nutrientes escolhidos contra as exigências
 // de cada dieta, composição, e relatório em PDF.
 const CMP={ref:null,cmp:null,nuts:null,list:[]};
+// Equinos: comparação simples de antes × depois, só custo por animal no dia e no mês.
+function cmpAD(){return S.sp==='equinos';}
+function cmpL(){return cmpAD()?{A:'Antes',B:'Depois',a:'antes',b:'depois',ar:'antes',br:'depois',pa:'Dieta antes',pb:'Dieta depois',dif:'Depois − antes'}
+  :{A:'Referência',B:'Comparada',a:'referência',b:'comparada',ar:'ref.',br:'comp.',pa:'Dieta de referência',pb:'Comparar com',dif:'Comparada − referência'};}
 function cmpEsc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 async function cmpLoadDiets(){
   let all=[];
@@ -2077,12 +2082,12 @@ async function rCmp(){
   CMP.nuts=CMP.nuts.filter(k=>allNuts.find(n=>n.key===k));
   h+=`<button class="btn bp" onclick="cmpPdf()">📄 Gerar relatório PDF</button></div>`;
   const opt=(sel,skip)=>L.map(d=>`<option value="${cmpEsc(d.id)}" ${d.id===sel?'selected':''} ${d.id===skip?'disabled':''}>${cmpEsc(d.name)}${d.source?' • '+cmpEsc(d.source):''}${d.date?' • '+cmpEsc(d.date):''}</option>`).join('');
-  h+=`<div class="cd"><div class="cmp-pick"><div><label class="tl">Dieta de referência</label><select class="ilg" onchange="cmpSet('ref',this.value)">${opt(a.id,b.id)}</select></div><span class="cmp-vs">×</span><div><label class="tl">Comparar com</label><select class="ilg" onchange="cmpSet('cmp',this.value)">${opt(b.id,a.id)}</select></div></div>`;
+  h+=`<div class="cd"><div class="cmp-pick"><div><label class="tl">${cmpL().pa}</label><select class="ilg" onchange="cmpSet('ref',this.value)">${opt(a.id,b.id)}</select></div><span class="cmp-vs">×</span><div><label class="tl">${cmpL().pb}</label><select class="ilg" onchange="cmpSet('cmp',this.value)">${opt(b.id,a.id)}</select></div></div>`;
   h+=`<h3 class="ss mt14">Nutrientes no comparativo</h3><div class="fg">${allNuts.map(n=>`<button class="cmp-chip ${CMP.nuts.includes(n.key)?'on':''}" title="${cmpEsc(n.desc||'')}" onclick="cmpTglNut('${n.key}')">${cmpEsc(n.label||n.key)}</button>`).join('')}</div>`;
   h+=`<p class="tm mt6">Cada dieta é avaliada contra as exigências com que foi salva. Valores fora da faixa ficam em vermelho.</p></div>`;
   const nsSel=CMP.nuts.map(k=>allNuts.find(n=>n.key===k)).filter(Boolean);
-  h+=`<div class="cd"><h3 class="ss">Custo por animal por dia</h3>${cmpCostCards(a,b)}<div class="cmp-chart">${cmpLegend()}${cmpChartsCost(a,b)}</div></div>`;
-  h+=`<div class="cd"><h3 class="ss">Exigências × dietas</h3>${nsSel.length?`<div class="cmp-chart">${cmpLegend()}<span class="cmp-leg-req">Faixa de exigência${cmpSameReq(a,b)?'':' (verde: referência, laranja: comparada)'}</span>${cmpRangeChart(a,b,nsSel)}</div>`:''}<div class="tw">${cmpNutTable(a,b,allNuts)}</div></div>`;
+  h+=`<div class="cd"><h3 class="ss">${cmpAD()?'Custo por animal no dia e no mês':'Custo por animal por dia'}</h3>${cmpCostCards(a,b)}<div class="cmp-chart">${cmpLegend()}${cmpChartsCost(a,b)}</div></div>`;
+  h+=`<div class="cd"><h3 class="ss">Exigências × dietas</h3>${nsSel.length?`<div class="cmp-chart">${cmpLegend()}<span class="cmp-leg-req">Faixa de exigência${cmpSameReq(a,b)?'':` (verde: ${cmpL().a}, laranja: ${cmpL().b})`}</span>${cmpRangeChart(a,b,nsSel)}</div>`:''}<div class="tw">${cmpNutTable(a,b,allNuts)}</div></div>`;
   if(ECO_SP[S.sp]){const t=ecoTable(a,b);
     h+=`<div class="cd"><h3 class="ss">Confinamento: qual dieta compensa mais</h3>${ecoInputs(a,b)}<div class="cmp-concl">${ecoConclusion(a,b,t)}</div><div class="cmp-chart">${cmpLegend()}${cmpChartsEco(t)}</div><div class="tw">${t.html}</div></div>`;}
   h+=`<div class="cd"><h3 class="ss">Composição (% da MS)</h3><div class="cmp-chart">${cmpLegend()}${cmpChartsComp(a,b)}</div><div class="tw">${cmpCompTable(a,b)}</div></div>`;
@@ -2096,16 +2101,22 @@ function cmpStatus(d,k){const r=d.req[k];if(!r)return 'ok';const v=d.val[k]||0,m
 function cmpCell(d,k){const s=cmpStatus(d,k);return `<td class="cmp-${s}">${n2(d.val[k]||0)}${s==='lo'?' <span class="bg bg-e">abaixo</span>':s==='hi'?' <span class="bg bg-e">acima</span>':''}</td>`;}
 function cmpCostCards(a,b){
   const dd=b.cDay-a.cDay,pct=a.cDay>0?dd/a.cDay*100:0,cheaper=dd<-0.005?b:(dd>0.005?a:null);
-  const card=(d,tag)=>`<div class="cmp-cc ${d===cheaper?'best':''}"><span class="cmp-tag ${d===cheaper?'best':''}">${tag}${d===cheaper?' • mais barata':''}</span><span class="cmp-n">${cmpEsc(d.name)}</span><span class="cmp-v">R$ ${n2(d.cDay)}</span><span class="cmp-m">R$ ${n2(d.cMS)}/kg MS • CMS ${n2(d.cms)} kg</span></div>`;
-  return `<div class="cmp-costs">${card(a,'Referência')}${card(b,'Comparada')}<div class="cmp-cc dif"><span class="cmp-tag">Diferença</span><span class="cmp-n">Comparada − referência</span><span class="cmp-v ${dd>0.005?'cmp-up':dd<-0.005?'cmp-down':''}">${cmpSg(dd,true)}</span><span class="cmp-m">${cmpSg(pct,false,1)}% • ${cmpSg(dd*30,true)}/mês por animal</span></div></div>`;
+  const L=cmpL(),ad=cmpAD(),cls=dd>0.005?'cmp-up':dd<-0.005?'cmp-down':'';
+  const card=(d,tag)=>`<div class="cmp-cc ${d===cheaper?'best':''}"><span class="cmp-tag ${d===cheaper?'best':''}">${tag}${d===cheaper?' • mais barata':''}</span><span class="cmp-n">${cmpEsc(d.name)}</span>${ad
+    ?`<span class="cmp-v">R$ ${n2(d.cDay)}<small>/dia</small></span><span class="cmp-v cmp-v2">R$ ${n2(d.cDay*30)}<small>/mês</small></span><span class="cmp-m">CMS ${n2(d.cms)} kg • R$ ${n2(d.cMS)}/kg MS</span>`
+    :`<span class="cmp-v">R$ ${n2(d.cDay)}</span><span class="cmp-m">R$ ${n2(d.cMS)}/kg MS • CMS ${n2(d.cms)} kg</span>`}</div>`;
+  const dif=ad?`<span class="cmp-v ${cls}">${cmpSg(dd,true)}<small>/dia</small></span><span class="cmp-v cmp-v2 ${cls}">${cmpSg(dd*30,true)}<small>/mês</small></span><span class="cmp-m">${cmpSg(pct,false,1)}% por animal</span>`
+    :`<span class="cmp-v ${cls}">${cmpSg(dd,true)}</span><span class="cmp-m">${cmpSg(pct,false,1)}% • ${cmpSg(dd*30,true)}/mês por animal</span>`;
+  return `<div class="cmp-costs">${card(a,L.A)}${card(b,L.B)}<div class="cmp-cc dif"><span class="cmp-tag">Diferença</span><span class="cmp-n">${L.dif}</span>${dif}</div></div>`;
 }
 function cmpSameReq(a,b){return CMP.nuts.every(k=>cmpRange(a.req[k])===cmpRange(b.req[k]));}
 function cmpNutTable(a,b,allNuts){
   const same=cmpSameReq(a,b),ns=CMP.nuts.map(k=>allNuts.find(n=>n.key===k)).filter(Boolean);
   const dash='<td class="tm">—</td>';
-  let h=`<table class="cmp-t"><thead><tr><th>Item</th>${same?'<th>Exigência</th>':''}<th>Referência</th>${same?'':'<th>Exig. ref.</th>'}<th>Comparada</th>${same?'':'<th>Exig. comp.</th>'}<th>Diferença</th></tr></thead><tbody>`;
+  let h=`<table class="cmp-t"><thead><tr><th>Item</th>${same?'<th>Exigência</th>':''}<th>${cmpL().A}</th>${same?'':`<th>Exig. ${cmpL().ar}</th>`}<th>${cmpL().B}</th>${same?'':`<th>Exig. ${cmpL().br}</th>`}<th>Diferença</th></tr></thead><tbody>`;
   const row=(lbl,va,vb,dif)=>`<tr><td class="tn">${lbl}</td>${same?dash:''}<td>${va}</td>${same?'':dash}<td>${vb}</td>${same?'':dash}<td>${dif}</td></tr>`;
   h+=row('Custo/animal/dia',`<b>R$ ${n2(a.cDay)}</b>`,`<b>R$ ${n2(b.cDay)}</b>`,cmpSg(b.cDay-a.cDay,true));
+  if(cmpAD())h+=row('Custo/animal/mês',`<b>R$ ${n2(a.cDay*30)}</b>`,`<b>R$ ${n2(b.cDay*30)}</b>`,cmpSg((b.cDay-a.cDay)*30,true));
   h+=row('Custo/kg MS',`R$ ${n2(a.cMS)}`,`R$ ${n2(b.cMS)}`,cmpSg(b.cMS-a.cMS,true));
   h+=row('CMS (kg MS/dia)',n2(a.cms),n2(b.cms),cmpSg(b.cms-a.cms));
   ns.forEach(n=>{const k=n.key;const ha=a.nuts.find(x=>x.key===k),hb=b.nuts.find(x=>x.key===k);
@@ -2115,12 +2126,12 @@ function cmpNutTable(a,b,allNuts){
 function cmpCompTable(a,b){
   const names=[];[a,b].forEach(d=>d.comp.forEach(c=>{if(!names.includes(c.name))names.push(c.name);}));
   const find=(d,n)=>d.comp.find(c=>c.name===n);
-  let h=`<table class="cmp-t"><thead><tr><th>Alimento</th><th>Referência</th><th>Comparada</th><th>R$/kg MS (ref.)</th><th>R$/kg MS (comp.)</th></tr></thead><tbody>`;
+  let h=`<table class="cmp-t"><thead><tr><th>Alimento</th><th>${cmpL().A}</th><th>${cmpL().B}</th><th>R$/kg MS (${cmpL().ar})</th><th>R$/kg MS (${cmpL().br})</th></tr></thead><tbody>`;
   names.forEach(n=>{const ca=find(a,n),cb=find(b,n);h+=`<tr><td class="tn">${cmpEsc(n)}</td><td>${ca?fmt(ca.pct,1)+'%':'—'}</td><td>${cb?fmt(cb.pct,1)+'%':'—'}</td><td>${ca?'R$ '+n2(ca.cKgMS):'—'}</td><td>${cb?'R$ '+n2(cb.cKgMS):'—'}</td></tr>`;});
   return h+'</tbody></table>';
 }
 function cmpConclusion(a,b,allNuts){
-  const dd=b.cDay-a.cDay;let t=Math.abs(dd)<.005?'As duas dietas têm o mesmo custo por animal por dia. ':`<b>${cmpEsc(dd<0?b.name:a.name)}</b> é mais barata em R$ ${n2(Math.abs(dd))} por animal por dia (R$ ${n2(Math.abs(dd)*30)} por mês). `;
+  const dd=b.cDay-a.cDay;let t=cmpAD()?(Math.abs(dd)<.005?'O custo por animal ficou igual com a dieta nova. ':`Com a dieta nova (<b>${cmpEsc(b.name)}</b>) o custo por animal ${dd<0?'cai':'sobe'} R$ ${n2(Math.abs(dd))} por dia e R$ ${n2(Math.abs(dd)*30)} por mês em relação à dieta anterior (<b>${cmpEsc(a.name)}</b>). `):Math.abs(dd)<.005?'As duas dietas têm o mesmo custo por animal por dia. ':`<b>${cmpEsc(dd<0?b.name:a.name)}</b> é mais barata em R$ ${n2(Math.abs(dd))} por animal por dia (R$ ${n2(Math.abs(dd)*30)} por mês). `;
   [a,b].forEach(d=>{const bad=CMP.nuts.filter(k=>d.nuts.find(n=>n.key===k)&&cmpStatus(d,k)!=='ok').map(k=>{const n=allNuts.find(x=>x.key===k);return cmpEsc(n?(n.label||k).replace(/\s*\(.*\)$/,''):k);});
     t+=bad.length?`<b>${cmpEsc(d.name)}</b> fica fora da exigência em ${bad.join(', ')}. `:`<b>${cmpEsc(d.name)}</b> atende as exigências dos nutrientes escolhidos. `;});
   if(!cmpSameReq(a,b))t+='Atenção: as dietas foram salvas com exigências diferentes.';
@@ -2130,7 +2141,7 @@ function cmpConclusion(a,b,allNuts){
 // Referência = verde, comparada = laranja (par validado para daltonismo);
 // a comparada também usa marcador de losango, para não depender só da cor.
 const CMP_CA='#166534',CMP_CB='#ea580c',CMP_INK='#1e293b',CMP_MUTED='#64748b',CMP_GRID='#e2e8f0';
-function cmpLegend(){return `<div class="cmp-leg"><span><i style="background:${CMP_CA}"></i>Referência</span><span><i class="dia" style="background:${CMP_CB}"></i>Comparada</span></div>`;}
+function cmpLegend(){return `<div class="cmp-leg"><span><i style="background:${CMP_CA}"></i>${cmpL().A}</span><span><i class="dia" style="background:${CMP_CB}"></i>${cmpL().B}</span></div>`;}
 // Barras horizontais agrupadas (referência × comparada), aceita valores negativos.
 function cmpBars(groups,fmtV){
   const W=700,LW=190,VW=90,BH=11,GAP=2,GH=BH*2+GAP+10,H=groups.length*GH+6;
@@ -2141,7 +2152,7 @@ function cmpBars(groups,fmtV){
   s+=`<line x1="${x0}" x2="${x0}" y1="0" y2="${H-4}" stroke="${CMP_MUTED}" stroke-width="1"/>`;
   groups.forEach((g,i)=>{const y=i*GH+4;
     s+=`<text x="${LW-8}" y="${y+BH+2}" text-anchor="end" font-size="11" fill="${CMP_INK}" font-weight="600">${cmpEsc(g.label)}</text>`;
-    [[g.a,CMP_CA,'Referência'],[g.b,CMP_CB,'Comparada']].forEach(([v,c,n],j)=>{if(v==null)return;const yy=y+j*(BH+GAP);
+    [[g.a,CMP_CA,cmpL().A],[g.b,CMP_CB,cmpL().B]].forEach(([v,c,n],j)=>{if(v==null)return;const yy=y+j*(BH+GAP);
       const x1=Math.min(x0,x(v)),w=Math.max(1,Math.abs(x(v)-x0));
       s+=`<g><title>${n}: ${cmpEsc(g.label)} = ${fmtV(v)}</title><rect x="${x1}" y="${yy}" width="${w}" height="${BH}" rx="3" fill="${c}"/>`;
       s+=`<text x="${v<0?x1-4:x1+w+4}" y="${yy+BH-3}" text-anchor="${v<0?'end':'start'}" font-size="10" fill="${CMP_INK}" font-family="DM Mono,Consolas,monospace">${fmtV(v)}</text></g>`;});});
@@ -2160,13 +2171,15 @@ function cmpRangeChart(a,b,ns){
     const band=(r,y0,h,fill,nm)=>{const mn=num(r.min),mx=r.max==null||num(r.max)>=9999?null:num(r.max);if(!(mn>0||mx!=null))return '';
       return `<g><title>Exigência${nm}: ${cmpRange(r)}</title><rect x="${x(mn)}" y="${y0}" width="${Math.max(2,x(mx!=null?mx:top)-x(mn))}" height="${h}" rx="3" fill="${fill}"/></g>`;};
     if(cmpRange(ra)===cmpRange(rb))s+=band(ra,cy-6,12,'#bbf7d0','');
-    else s+=band(ra,cy-7,6,'#bbf7d0',' da referência')+band(rb,cy+1,6,'#fed7aa',' da comparada');
-    if(va!=null)s+=`<g><title>Referência: ${n2(va)}</title><circle cx="${x(va)}" cy="${cy}" r="6" fill="${CMP_CA}" stroke="#fff" stroke-width="2"/></g>`;
-    if(vb!=null)s+=`<g><title>Comparada: ${n2(vb)}</title><rect x="${x(vb)-6}" y="${cy-6}" width="12" height="12" transform="rotate(45 ${x(vb)} ${cy})" fill="${CMP_CB}" stroke="#fff" stroke-width="2"/></g>`;
+    else s+=band(ra,cy-7,6,'#bbf7d0',' '+cmpL().a)+band(rb,cy+1,6,'#fed7aa',' '+cmpL().b);
+    if(va!=null)s+=`<g><title>${cmpL().A}: ${n2(va)}</title><circle cx="${x(va)}" cy="${cy}" r="6" fill="${CMP_CA}" stroke="#fff" stroke-width="2"/></g>`;
+    if(vb!=null)s+=`<g><title>${cmpL().B}: ${n2(vb)}</title><rect x="${x(vb)-6}" y="${cy-6}" width="12" height="12" transform="rotate(45 ${x(vb)} ${cy})" fill="${CMP_CB}" stroke="#fff" stroke-width="2"/></g>`;
     s+=`<text x="${W-4}" y="${cy+4}" text-anchor="end" font-size="10" fill="${CMP_MUTED}" font-family="DM Mono,Consolas,monospace">${va!=null?n2(va):'—'} · ${vb!=null?n2(vb):'—'}</text>`;});
   return s+'</svg>';
 }
-function cmpChartsCost(a,b){return cmpBars([{label:'Custo/animal/dia',a:a.cDay,b:b.cDay},{label:'Custo/kg MS',a:a.cMS,b:b.cMS}],v=>'R$ '+n2(v));}
+function cmpChartsCost(a,b){const f=v=>'R$ '+n2(v);
+  if(cmpAD())return cmpBars([{label:'Custo/animal/dia',a:a.cDay,b:b.cDay}],f)+cmpBars([{label:'Custo/animal/mês',a:a.cDay*30,b:b.cDay*30}],f);
+  return cmpBars([{label:'Custo/animal/dia',a:a.cDay,b:b.cDay},{label:'Custo/kg MS',a:a.cMS,b:b.cMS}],f);}
 function cmpChartsComp(a,b){
   const names=[];[a,b].forEach(d=>d.comp.forEach(c=>{if(!names.includes(c.name))names.push(c.name);}));
   const p=(d,n)=>{const c=d.comp.find(x=>x.name===n);return c?c.pct:null;};
@@ -2296,12 +2309,12 @@ async function cmpPdf(){
     const prem=e.modo==='arroba'?'Venda por arroba (1 @ = 15 kg de carcaça)':'Venda por animal';
     ecoPdf=`<div class="box"><h3>Confinamento: qual dieta compensa mais</h3><p class="tm" style="margin-bottom:4px">${prem}</p><div class="concl" style="margin:0 0 6px">${ecoConclusion(a,b,t)}</div>${t.html}<div class="cmp-chart">${cmpLegend()}${cmpChartsEco(t)}</div></div>`;}
   const nsSel=CMP.nuts.map(k=>allNuts.find(n=>n.key===k)).filter(Boolean);
-  const body=`<div class="ph"><h1><span class="logo">N</span>Nutricalc — Comparação de Dietas</h1><p>${cmpEsc(db.label||'')} • ${hoje}</p></div>
+  const body=`<div class="ph"><h1><span class="logo">N</span>Nutricalc — Comparação de Dietas${cmpAD()?' (antes × depois)':''}</h1><p>${cmpEsc(db.label||'')} • ${hoje}</p></div>
 <div class="pf">${fld('Responsável',info.responsavel)}${fld('Propriedade',info.propriedade)}${fld('Animal/Lote',info.animal)}</div>
-<div class="pf"><span><b>Referência:</b> ${cmpEsc(a.name)}${a.source?' ('+cmpEsc(a.source)+(a.date?', '+cmpEsc(a.date):'')+')':''}</span><span><b>Comparada:</b> ${cmpEsc(b.name)}${b.source?' ('+cmpEsc(b.source)+(b.date?', '+cmpEsc(b.date):'')+')':''}</span></div>
+<div class="pf"><span><b>${cmpL().A}:</b> ${cmpEsc(a.name)}${a.source?' ('+cmpEsc(a.source)+(a.date?', '+cmpEsc(a.date):'')+')':''}</span><span><b>${cmpL().B}:</b> ${cmpEsc(b.name)}${b.source?' ('+cmpEsc(b.source)+(b.date?', '+cmpEsc(b.date):'')+')':''}</span></div>
 <div class="concl">${cmpConclusion(a,b,allNuts)}</div>
 ${cmpCostCards(a,b)}
-<div class="box"><h3>Exigências × dietas</h3>${cmpNutTable(a,b,allNuts)}${nsSel.length?`<div class="cmp-chart">${cmpLegend()}<span class="cmp-leg-req">Faixa de exigência${cmpSameReq(a,b)?'':' (verde: referência, laranja: comparada)'}</span>${cmpRangeChart(a,b,nsSel)}</div>`:''}</div>
+<div class="box"><h3>Exigências × dietas</h3>${cmpNutTable(a,b,allNuts)}${nsSel.length?`<div class="cmp-chart">${cmpLegend()}<span class="cmp-leg-req">Faixa de exigência${cmpSameReq(a,b)?'':` (verde: ${cmpL().a}, laranja: ${cmpL().b})`}</span>${cmpRangeChart(a,b,nsSel)}</div>`:''}</div>
 ${ecoPdf}<div class="box"><h3>Composição (% da MS)</h3>${cmpCompTable(a,b)}<div class="cmp-chart">${cmpLegend()}${cmpChartsComp(a,b)}</div></div>
 <div class="sign"><div>Responsável técnico</div></div>
 <div class="pft">Nutricalc • UENP • Formulação de Dietas na Nutrição Animal</div>`;
@@ -2311,7 +2324,7 @@ ${ecoPdf}<div class="box"><h3>Composição (% da MS)</h3>${cmpCompTable(a,b)}<di
 .concl{background:#f0fdf4;border:1px solid #bbe5c8;border-radius:7px;padding:8px 10px;font-size:10px;line-height:1.55;margin:8px 0 10px}
 .cmp-costs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}.cmp-cc{border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:2px}
 .cmp-cc.best{border:2px solid #22863a;background:#f3fbf5}.cmp-cc.dif{background:#f8fafc}.cmp-tag{align-self:flex-start;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:#f1f5f9;color:#64748b;border-radius:5px;padding:1px 6px}.cmp-tag.best{background:#14532d;color:#fff}
-.cmp-n{font-weight:700;font-size:10.5px}.cmp-v{font-family:'DM Mono',Consolas,monospace;font-size:16px;color:#14532d}.cmp-m{font-size:9px;color:#64748b}.cmp-up{color:#991b1b}.cmp-down{color:#22863a}
+.cmp-n{font-weight:700;font-size:10.5px}.cmp-v{font-family:'DM Mono',Consolas,monospace;font-size:16px;color:#14532d}.cmp-m{font-size:9px;color:#64748b}.cmp-up{color:#991b1b}.cmp-down{color:#22863a}.cmp-v small{font-size:10px;color:#64748b;margin-left:2px}.cmp-v2{font-size:13px}
 .box{border:1px solid #ccc;border-radius:8px;padding:8px 10px;margin-bottom:10px;page-break-inside:avoid}.box h3{font-size:11px;color:#14532d;margin-bottom:5px}
 table{width:100%;border-collapse:collapse}th{background:#e5e7eb;font-size:7.5px;text-transform:uppercase;padding:4px 3px;font-family:'DM Mono',Consolas,monospace}th:first-child,td:first-child{text-align:left;padding-left:6px}
 td{padding:3px;border-bottom:1px solid #ddd;text-align:center;font-size:9.5px;font-family:'DM Mono',Consolas,monospace}.tn{font-family:'DM Sans','Segoe UI',Arial,sans-serif;font-weight:600}.tm{color:#64748b;font-size:8.5px}
