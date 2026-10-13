@@ -192,6 +192,8 @@ function setupIPC() {
   // Backup completo do banco de dados (dietas, alimentos, bancos), disponível
   // também sob demanda pelo menu "Backup" da interface, não só no update.
   ipcMain.handle('backup-database-file', () => backupDatabaseFile());
+  // Importar (restaurar) um backup geral .db, substituindo o banco atual.
+  ipcMain.handle('restore-database-file', () => restoreDatabaseFile());
 
   // Fechar o app: o renderer confirma que já persistiu a sessão/dieta atual.
   ipcMain.handle('confirm-close', () => {
@@ -334,6 +336,84 @@ async function backupDatabaseFile() {
     });
     return false;
   }
+}
+
+// Restaura um backup geral (.db) feito pelo "Exportar backup geral": troca o
+// banco inteiro (todas as espécies, bancos, alimentos e dietas) pelo arquivo
+// escolhido. Antes, salva uma cópia do banco atual em userData/backups, para
+// poder voltar atrás. Depois reinicia o app, que abre já com o banco novo.
+async function restoreDatabaseFile() {
+  if (!db || !win) return false;
+  const dbPath = path.join(app.getPath('userData'), 'nutricalc.db');
+  const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+    title: 'Importar Backup Geral do Nutricalc',
+    filters: [{ name: 'Banco de Dados Nutricalc (*.db)', extensions: ['db'] }],
+    properties: ['openFile']
+  });
+  if (canceled || !filePaths.length) return false;
+  const src = filePaths[0];
+  if (path.resolve(src).toLowerCase() === path.resolve(dbPath).toLowerCase()) {
+    await dialog.showMessageBox(win, { type: 'warning', title: 'Importar Backup', message: 'Este é o banco que já está em uso. Escolha um arquivo de backup.' });
+    return false;
+  }
+
+  // Confere se o arquivo é mesmo um banco do Nutricalc e se está íntegro.
+  let resumo = '';
+  try {
+    const chk = new Database(src, { readonly: true, fileMustExist: true });
+    try {
+      const ok = chk.pragma('quick_check', { simple: true });
+      const hasDiets = chk.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='diets'").get();
+      if (ok !== 'ok' || !hasDiets) throw new Error('o arquivo não é um backup do Nutricalc ou está corrompido');
+      const nD = chk.prepare('SELECT COUNT(*) AS n FROM diets').get().n;
+      const hasFeeds = chk.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='custom_feeds'").get();
+      const nF = hasFeeds ? chk.prepare('SELECT COUNT(*) AS n FROM custom_feeds').get().n : 0;
+      resumo = '\n\nO backup tem ' + nD + ' dieta(s) salva(s) e ' + nF + ' alimento(s) cadastrado(s).';
+    } finally { chk.close(); }
+  } catch (err) {
+    await dialog.showMessageBox(win, { type: 'error', title: 'Importar Backup', message: 'Não foi possível usar este arquivo: ' + err.message });
+    return false;
+  }
+
+  const r = await dialog.showMessageBox(win, {
+    type: 'warning', title: 'Importar Backup Geral',
+    message: 'Todos os dados atuais (dietas, alimentos e bancos de todas as espécies) serão substituídos pelos do backup:\n' + path.basename(src) + resumo +
+      '\n\nUma cópia dos dados atuais será guardada antes, por segurança. O Nutricalc vai reiniciar em seguida.',
+    buttons: ['Importar e reiniciar', 'Cancelar'], defaultId: 0, cancelId: 1
+  });
+  if (r.response !== 0) return false;
+
+  // Cópia de segurança do banco atual (via Online Backup API, consistente com WAL).
+  const bkDir = path.join(app.getPath('userData'), 'backups');
+  const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
+  const safety = path.join(bkDir, 'antes_de_importar_' + stamp + '.db');
+  try {
+    fs.mkdirSync(bkDir, { recursive: true });
+    await db.backup(safety);
+  } catch (err) {
+    await dialog.showMessageBox(win, { type: 'error', title: 'Importar Backup', message: 'Não foi possível guardar a cópia de segurança, nada foi alterado: ' + err.message });
+    return false;
+  }
+
+  // Troca o arquivo: fecha o banco, copia o backup por cima e remove os
+  // arquivos -wal/-shm do banco antigo (senão o SQLite os aplicaria ao novo).
+  try {
+    db.close();
+    db = null;
+    for (const ext of ['-wal', '-shm']) { try { fs.unlinkSync(dbPath + ext); } catch (e) {} }
+    fs.copyFileSync(src, dbPath);
+  } catch (err) {
+    try { if (!db) fs.copyFileSync(safety, dbPath); } catch (e) {}
+    try { if (!db) initDB(); } catch (e) {}
+    await dialog.showMessageBox(win, { type: 'error', title: 'Importar Backup', message: 'Não foi possível importar o backup, os dados atuais foram mantidos: ' + err.message });
+    return false;
+  }
+
+  await dialog.showMessageBox(win, { type: 'info', title: 'Backup Importado', message: 'Backup importado com sucesso! O Nutricalc vai reiniciar agora.\n\nCópia dos dados anteriores guardada em:\n' + safety });
+  isQuitting = true;
+  app.relaunch();
+  app.exit(0);
+  return true;
 }
 
 // Diálogo exibido quando a atualização já foi baixada e está pronta para

@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('api', {
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   backupDatabaseFile: () => ipcRenderer.invoke('backup-database-file'),
+  restoreDatabaseFile: () => ipcRenderer.invoke('restore-database-file'),
   // Fechamento: salvar a sessão antes de encerrar
   onAppWillClose: (cb) => ipcRenderer.on('app-will-close', () => cb()),
   confirmClose: () => ipcRenderer.invoke('confirm-close'),

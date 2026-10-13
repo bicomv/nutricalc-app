@@ -177,10 +177,25 @@ input[type="checkbox"]{width:14px;height:14px;accent-color:var(--p);cursor:point
 .dd-ds{font-size:10px;color:var(--c5);margin-top:1px;line-height:1.3;}
 .dd-sep{height:1px;background:var(--c2);margin:4px 6px;}
 /* ZOOM (canto inferior direito) */
-.zoomctl{position:fixed;right:14px;bottom:14px;z-index:900;display:flex;align-items:center;gap:2px;background:var(--c0);border:1px solid var(--c3);border-radius:22px;box-shadow:0 4px 16px rgba(0,0,0,.16);padding:3px;}
+.zoomctl{position:fixed;right:14px;bottom:14px;z-index:3000;display:flex;align-items:center;gap:2px;background:var(--c0);border:1px solid var(--c3);border-radius:22px;box-shadow:0 4px 16px rgba(0,0,0,.16);padding:3px;}
 .zoomctl button{border:none;background:0;cursor:pointer;font-family:var(--ff);color:var(--p);font-weight:700;border-radius:50%;width:30px;height:30px;font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center;}
 .zoomctl button:hover{background:var(--c2);}
 .zoomctl #zoomLbl{width:auto;padding:0 8px;border-radius:14px;font-size:11px;font-family:var(--fm);font-weight:600;}
+.zoomctl #tvBtn{width:auto;padding:0 10px;border-radius:14px;font-size:12px;margin-left:2px;border-left:1px solid var(--c3);}
+.zoomctl #tvBtn.on{background:var(--p);color:#fff;}
+/* BACKUP GERAL NA TELA INICIAL */
+.l-acts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:18px;}
+.l-acts .btn{background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.25);font-size:12px;}
+.l-acts .btn:hover{background:rgba(255,255,255,.22);}
+/* MODO TV (aula/projetor): letras maiores e mais contraste */
+body.tv{--c3:#cbd5e1;--c4:#94a3b8;--c5:#475569;--c6:#334155;--c7:#1e293b;--tx:#0b1220;}
+body.tv td{font-size:13px;}body.tv th{font-size:11px;}
+body.tv input[type="text"],body.tv input[type="number"],body.tv select{font-size:13px;border-width:2px;}
+body.tv .btn{font-size:13px;}body.tv .tab{font-size:14px;}body.tv .navgrp{opacity:.8;font-size:11px;}
+body.tv .tm,body.tv .dd-ds,body.tv .cmp-m,body.tv .di-info .di-meta,body.tv .nc .nd{font-size:12px;}
+body.tv .tl,body.tv .sr .nm,body.tv .rb .rh label{font-size:13px;}
+body.tv .landing .sub{opacity:1;font-size:15px;}body.tv .sp-card .ds{opacity:.85;font-size:12px;}
+body.tv .pn{animation:none;}
 
 /* DIET LIST */
 .diet-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--c0);border:1px solid var(--c3);border-radius:8px;margin-bottom:6px;}
@@ -230,8 +245,12 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
   <div class="l-logo"><div class="l-logo-tile">N</div></div>
   <h1>Nutricalc</h1>
   <p class="sub">Sistema para cálculos de dieta para animais.</p>
-  <p id="appVer" style="font-size:11px;opacity:.55;margin:2px 0 12px;letter-spacing:1px">v4.5.2</p>
-  <div style="margin-bottom:18px"><button class="btn bs" style="background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.25);font-size:12px" onclick="checkAppUpdate()">🔄 Verificar Atualização</button></div>
+  <p id="appVer" style="font-size:11px;opacity:.55;margin:2px 0 12px;letter-spacing:1px">v4.6.0</p>
+  <div class="l-acts">
+    <button class="btn bs" onclick="checkAppUpdate()">🔄 Verificar Atualização</button>
+    <button class="btn bs" onclick="backupDatabaseFull()" title="Salva um arquivo .db com TODAS as espécies, bancos, alimentos e dietas">📤 Exportar backup geral</button>
+    <button class="btn bs" onclick="restoreDatabaseFull()" title="Restaura um arquivo .db do backup geral, substituindo todos os dados atuais">📥 Importar backup geral</button>
+  </div>
   <div id="resumeCard" class="resume hid">
     <span class="r-ic">📋</span>
     <div class="r-info">
@@ -264,7 +283,7 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
   <aside class="side no-print">
     <div class="brand">
       <div class="brand-logo">N</div>
-      <div class="brand-txt"><h1>Nutricalc</h1><div class="brand-v" id="appVerSide">v4.5.2</div></div>
+      <div class="brand-txt"><h1>Nutricalc</h1><div class="brand-v" id="appVerSide">v4.6.0</div></div>
     </div>
     <div class="ctx">
       <div class="ctx-row"><img class="ctx-icon" id="hI" alt=""><span class="ctx-v" id="hB">—</span></div>
@@ -302,6 +321,7 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
             <div class="dd-i" onclick="closeMenus();onImportJSON()"><span class="dd-ic">📥</span><div><div class="dd-nm">Importar backup</div><div class="dd-ds">Restaura de um arquivo de backup exportado</div></div></div>
             <div class="dd-sep"></div>
             <div class="dd-i" onclick="closeMenus();backupDatabaseFull()"><span class="dd-ic">🗄️</span><div><div class="dd-nm">Backup completo do banco (.db)</div><div class="dd-ds">Copia TODOS os bancos/espécies e dietas de uma vez, por garantia</div></div></div>
+            <div class="dd-i" onclick="closeMenus();restoreDatabaseFull()"><span class="dd-ic">♻️</span><div><div class="dd-nm">Importar backup completo (.db)</div><div class="dd-ds">Restaura TODOS os dados de um backup .db (substitui os atuais)</div></div></div>
           </div>
         </span>
         <input type="file" id="jsonFileInput" accept=".json,application/json" style="display:none" onchange="importJSON(event)">
@@ -324,11 +344,13 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
     </div>
     <div class="ft no-print">Nutricalc • Criador: José C. Arevalo Jr. (jcarevalojr@gmail.com) • Colaboradores: Luiz G. S. Maistro, Marcos A. A. Silva, Petrônio P. Porto, Simone F. N. Pertile</div>
   </div>
-  <div id="zoomCtl" class="zoomctl no-print">
-    <button onclick="appZoom(-1)" title="Diminuir zoom">−</button>
-    <button id="zoomLbl" onclick="appZoom(0)" title="Restaurar zoom (100%)">100%</button>
-    <button onclick="appZoom(1)" title="Aumentar zoom">+</button>
-  </div>
+</div>
+
+<div id="zoomCtl" class="zoomctl no-print">
+  <button onclick="appZoom(-1)" title="Diminuir zoom">−</button>
+  <button id="zoomLbl" onclick="appZoom(0)" title="Restaurar zoom (100%)">100%</button>
+  <button onclick="appZoom(1)" title="Aumentar zoom">+</button>
+  <button id="tvBtn" onclick="toggleTvMode()" title="Modo TV para aula: letras maiores e mais contraste (atalho F9)">📺 TV</button>
 </div>
 
 <div id="mOv" class="modal-ov hid"><div class="modal" id="mC"></div></div>
@@ -1134,7 +1156,7 @@ async function exportDbProfileUI(id) {
     const exportPayload = {
       app: 'Nutricalc',
       format: 'database_profile',
-      version: (window.APP_VERSION || '4.5.2'),
+      version: (window.APP_VERSION || '4.6.0'),
       species_id: S.sp,
       species_label: DB[S.sp]?.label || S.sp,
       profile_name: p.name,
@@ -1258,7 +1280,13 @@ document.addEventListener('focusout',function(e){ if(_zeroClearScope(e.target) &
 // Zoom da interface (botões no canto inferior direito). Usa CSS zoom no body,
 // persistido em localStorage.
 let _appZoom=1;
-function applyAppZoom(){ try{document.body.style.zoom=_appZoom;}catch(e){} const l=$('zoomLbl'); if(l)l.textContent=Math.round(_appZoom*100)+'%'; try{localStorage.setItem('nutri_zoom',String(_appZoom));}catch(e){} }
+// Modo TV (aula/projetor): aumenta tudo em 25% além do zoom escolhido e
+// reforça o contraste (classe "tv" no body). Liga/desliga no botão 📺 ou F9.
+let _tvMode=false;
+try{ _tvMode=localStorage.getItem('nutri_tv')==='1'; }catch(e){}
+function applyAppZoom(){ try{document.body.style.zoom=_appZoom*(_tvMode?1.25:1); document.body.classList.toggle('tv',_tvMode);}catch(e){} const l=$('zoomLbl'); if(l)l.textContent=Math.round(_appZoom*100)+'%'; const t=$('tvBtn'); if(t)t.classList.toggle('on',_tvMode); try{localStorage.setItem('nutri_zoom',String(_appZoom));}catch(e){} }
+function toggleTvMode(){ _tvMode=!_tvMode; try{localStorage.setItem('nutri_tv',_tvMode?'1':'0');}catch(e){} applyAppZoom(); }
+document.addEventListener('keydown',e=>{ if(e.key==='F9'){ e.preventDefault(); toggleTvMode(); } });
 function appZoom(dir){ if(dir===0)_appZoom=1; else _appZoom=Math.min(1.6,Math.max(0.6,Math.round((_appZoom+dir*0.1)*10)/10)); applyAppZoom(); }
 try{ const _z=parseFloat(localStorage.getItem('nutri_zoom')); if(_z>=0.6&&_z<=1.6)_appZoom=_z; }catch(e){}
 if(document.readyState!=='loading') applyAppZoom(); else document.addEventListener('DOMContentLoaded',applyAppZoom);
@@ -1924,11 +1952,16 @@ h+=`<div class="cd"><div class="tw"><table><thead><tr><th>Alimento</th><th>Tipo<
 fl.forEach(f=>{
   const cMS=f.custoKg/(f.ms/100);
   h+=`<tr><td class="tn">${f.name}</td><td>${f.tipo||''}</td>
-  <td><input type="number" step="0.01" class="ism" value="${f.custoKg}" onchange="upF(${f.id},'custoKg',this.value);rPrc()"></td>
-  <td>R$ ${n2(cMS)}</td></tr>`;
+  <td><input type="number" step="0.01" class="ism prc-in" value="${f.custoKg}" onfocus="this.select()" onchange="upF(${f.id},'custoKg',this.value);updPrcRow(${f.id})" onkeydown="prcKey(event,this)"></td>
+  <td id="prcMS_${f.id}">R$ ${n2(cMS)}</td></tr>`;
 });
 h+=`</tbody></table></div></div><div class="tc mt10"><button class="btn bp" onclick="goTab('opt');rOpt()">Ir para Formulação</button></div>`;
 $('p-prc').innerHTML=h;}
+// Atualiza só o R$/kg MS da linha alterada (redesenhar a tabela tirava o
+// foco do campo e o Tab não ia para o próximo alimento).
+function updPrcRow(id){const f=S.feeds.find(x=>x.id===id);const c=$('prcMS_'+id);if(f&&c)c.textContent='R$ '+n2(f.custoKg/(f.ms/100));}
+// Enter também pula para o próximo preço (Shift+Enter volta).
+function prcKey(e,el){if(e.key!=='Enter')return;e.preventDefault();const ins=Array.from(document.querySelectorAll('#p-prc .prc-in'));const nx=ins[ins.indexOf(el)+(e.shiftKey?-1:1)];if(nx)nx.focus();else el.blur();}
 function updMSR(){const fl=selfn();const props=fl.map(f=>(S.mMS[f.id]||0)/100);const sum=props.reduce((a,b)=>a+b,0);
 const sb=$('msSB');if(sb)sb.innerHTML=`<div class="sb ${Math.abs(sum-1)<.01?'sb-ok':'sb-w'}">Soma: ${fmt(sum*100,1)}%${Math.abs(sum-1)>.01?' — normalizado para 100%':''}</div>`;
 const ar=$('msR');if(!ar||sum<.01){if(ar)ar.innerHTML='';return;}ar.innerHTML=buildEval(fl,props.map(p=>p/sum),'msR');}
@@ -2664,7 +2697,7 @@ async function saveCurrentDiet(){
 // ══════════ BOOTSTRAP (versão, fechar-salvando, restaurar sessão) ══════════
 (async function bootstrap(){
   // Versão exibida = versão realmente instalada (lida do package.json).
-  let v='4.5.2';
+  let v='4.6.0';
   try{ if(typeof window.api!=='undefined' && window.api.getAppVersion){ v=(await window.api.getAppVersion())||v; } }catch(e){}
   window.APP_VERSION=v;
   const ve=$('appVer'); if(ve) ve.textContent='v'+v;
@@ -2713,6 +2746,16 @@ async function backupDatabaseFull(){
   }
   try{ await window.api.backupDatabaseFile(); }
   catch(e){ console.error(e); nAlert('Erro ao fazer backup: '+e.message); }
+}
+
+// Importa (restaura) um backup geral .db. O app principal confirma, guarda
+// uma cópia dos dados atuais e reinicia já com o banco do backup.
+async function restoreDatabaseFull(){
+  if(typeof window.api==='undefined'||!window.api.restoreDatabaseFile){
+    return nAlert('Importar backup geral disponível apenas no aplicativo Desktop Nutricalc.');
+  }
+  try{ await window.api.restoreDatabaseFile(); }
+  catch(e){ console.error(e); nAlert('Erro ao importar backup: '+e.message); }
 }
 
 // ══════════ CHECK FOR UPDATES (global) ══════════
