@@ -40,7 +40,7 @@ Exemplo de formato, com valores apenas ilustrativos:
 
 O arquivo começa vazio e complementa os alimentos que já vêm no aplicativo. A URL configurada em `src/catalog-config.json` é `https://raw.githubusercontent.com/bicomv/nutricalc-app/main/catalog/foods.json`.
 
-**O catálogo preparado localmente ainda precisa ser publicado no GitHub.** Até isso acontecer, a atualização pode informar que ele não foi publicado. Também é necessário distribuir uma versão do aplicativo com esse recurso uma vez; depois, novos alimentos exigem apenas a atualização do banco.
+O arquivo `catalog/foods.json` é publicado junto do código na branch `main`. Na versão 4.6.1, o botão **Atualizar banco original** fica na tela inicial, junto das opções de atualização e backup. Depois que essa versão for instalada uma vez, novos alimentos exigem apenas a atualização do banco.
 
 O download só ocorre quando o usuário solicita. Os alimentos são incorporados ao **Banco Padrão** ao iniciar a espécie ou atualizar manualmente, sem selecionar ingredientes automaticamente. Dietas salvas e bancos personalizados são preservados. Esta versão adiciona alimentos; não substitui composições nem preços locais já existentes.
 

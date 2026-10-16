@@ -19,6 +19,7 @@ const fs = require('node:fs');
   assert.deepEqual(status,{ok:true,data:{catalogConfigured:true,error:null}});
   assert.equal(await evaluate("typeof window.api.catalogLogin"),'undefined');
   assert.equal(await evaluate("typeof window.api.catalogOpenForm"),'undefined');
+  assert.equal(await evaluate("!!document.querySelector('#landing #catalogLauncher')"),true);
   await evaluate("document.querySelector('#catalogLauncher').click()");
   const dialog=await evaluate("new Promise(resolve=>setTimeout(()=>resolve({open:document.querySelector('#catalogDialog').open,text:document.querySelector('#catalogDialog').textContent,disabled:[...document.querySelectorAll('#catalogDialog button')].some(b=>b.disabled)}),100))");
   assert.equal(dialog.open,true);assert.match(dialog.text,/Atualizar banco original/);assert.doesNotMatch(dialog.text,/Entrar com Google|Sugerir|formulário/i);
