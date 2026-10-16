@@ -26,14 +26,19 @@
   function updateDefaults() {
     for (const [sp, original] of base) {
       let next = Math.max(...original.map(f => f.id), 200) + 10000;
-      DB[sp].feeds = [...JSON.parse(JSON.stringify(original)), ...cache.feeds.filter(r => r.species === group(sp)).map(r => ({ ...r.feed, id: next++, _officialId: r.id }))];
+      const feeds=JSON.parse(JSON.stringify(original));
+      for(const row of cache.feeds.filter(r=>r.species===group(sp))){
+        if(FeedIdentity.exists(feeds,row.feed))continue;
+        feeds.push({...row.feed,id:next++,_officialId:row.id});
+      }
+      DB[sp].feeds=feeds;
     }
   }
   function appendToCurrent() {
     if (!S.sp || S.activeDbProfileName !== 'Banco Padrão' || S.loadedDietId) return 0;
     let count = 0;
     for (const row of cache.feeds.filter(r => r.species === group(S.sp))) {
-      if (S.feeds.some(f => f._officialId === row.id)) continue;
+      if (S.feeds.some(f => f._officialId === row.id) || FeedIdentity.exists(S.feeds,row.feed)) continue;
       S.feeds.push({ ...row.feed, id: newFeedId(), _officialId: row.id }); count++;
     }
     if (count) { ensurePdr(); rFeeds(); }
