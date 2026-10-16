@@ -4,8 +4,13 @@ const path = require('path');
 const Database = require('better-sqlite3');
 const fs = require('fs');
 const { parseCQBALUrl } = require('./cqbal-parser');
+const { createCatalogService } = require('./catalog-service');
 
 let win, db, isQuitting = false;
+// Development smoke tests use a separate database, never the installed profile.
+if (!app.isPackaged && process.env.NUTRICALC_TEST_PROFILE === '1') {
+  app.setPath('userData', path.join(__dirname, '..', '.test-profile'));
+}
 
 function initDB() {
   const dbPath = path.join(app.getPath('userData'), 'nutricalc.db');
@@ -51,6 +56,19 @@ function initDB() {
 
 // ── IPC HANDLERS ──
 function setupIPC() {
+  ipcMain.handle('db-transfer-feeds',(event,input)=>{
+    if(!win||event.sender!==win.webContents||event.senderFrame!==win.webContents.mainFrame)throw new Error('Origem não autorizada.');
+    return require('./feed-transfer-db').transferFeeds(db,input);
+  });
+  const catalog = createCatalogService({ db });
+  const trustedPage = require('node:url').pathToFileURL(path.join(__dirname, 'index.html')).href;
+  for (const method of ['status','cached','sync']) {
+    ipcMain.handle('catalog-' + method, async (event, data) => {
+      if (!win || event.sender !== win.webContents || event.senderFrame !== win.webContents.mainFrame || event.senderFrame.url !== trustedPage) throw new Error('Origem não autorizada.');
+      try { return { ok: true, data: await catalog[method](data) }; }
+      catch (e) { return { ok: false, error: e.message }; }
+    });
+  }
   // Diets
   ipcMain.handle('db-get-diets', () => {
     const rows = db.prepare('SELECT * FROM diets ORDER BY created_at DESC').all();
@@ -289,6 +307,12 @@ function createWindow() {
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false }
   });
   win.setMenuBarVisibility(false);
+  // Preserve the existing print preview, while blocking remote popups.
+  win.webContents.setWindowOpenHandler(({ url }) => url === 'about:blank'
+    ? { action: 'allow', overrideBrowserWindowOptions: { webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true, preload: undefined } } }
+    : { action: 'deny' });
+  win.webContents.on('will-navigate', (event) => event.preventDefault());
+  win.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   win.loadFile(path.join(__dirname, 'index.html'));
 
   // Ao fechar, dá ao renderer a chance de salvar a dieta/sessão atual antes

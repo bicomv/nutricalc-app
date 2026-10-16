@@ -1,6 +1,10 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
+  transferFeeds: (input) => ipcRenderer.invoke('db-transfer-feeds',input),
+  catalogStatus: () => ipcRenderer.invoke('catalog-status'),
+  catalogCached: () => ipcRenderer.invoke('catalog-cached'),
+  catalogSync: () => ipcRenderer.invoke('catalog-sync'),
   // Diets
   getDiets: () => ipcRenderer.invoke('db-get-diets'),
   saveDiet: (d) => ipcRenderer.invoke('db-save-diet', d),

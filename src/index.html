@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nutricalc — Formulação de Dietas na Nutrição Animal</title>
 <style>
@@ -244,7 +245,8 @@ th{background:#e5e7eb!important;color:#000!important;-webkit-print-color-adjust:
 <div id="landing" class="landing">
   <div class="l-logo"><div class="l-logo-tile">N</div></div>
   <h1>Nutricalc</h1>
-  <p class="sub">Sistema para cálculos de dieta para animais.</p>
+  <p class="sub" style="margin-bottom:8px">Sistema para cálculos de dieta para animais.</p>
+  <p style="font-size:12px;font-weight:700;letter-spacing:.5px;margin:0 0 28px;opacity:.9">É GRATUITO E DE CÓDIGO ABERTO (E SEMPRE SERÁ)</p>
   <p id="appVer" style="font-size:11px;opacity:.55;margin:2px 0 12px;letter-spacing:1px">v4.6.0</p>
   <div class="l-acts">
     <button class="btn bs" onclick="checkAppUpdate()">🔄 Verificar Atualização</button>
@@ -840,6 +842,7 @@ async function rDbs() {
         </div>
         <div class="fg">
           <button class="btn bp" onclick="modCreateDbProfile()">+ Novo Banco</button>
+          <button class="btn bs" onclick="openFeedTransfer()">⇄ Comparar e copiar alimentos</button>
           <button class="btn bs" onclick="importDbProfileUI()">📥 Importar Banco (.json)</button>
         </div>
       </div>
@@ -1334,6 +1337,7 @@ async function validateFeedBeforeSave(msVal, priceVal, opts){
   }
   return true;
 }
+function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function rFeeds(){
   const q=(S.search||'').toLowerCase();
   let baseList=S.feeds;
@@ -1370,7 +1374,7 @@ function rFeeds(){
   h+=`<div class="cd" style="padding:0"><div class="tw"><table><thead><tr><th>✓</th><th>Alimento</th><th>Tipo</th>`;nk.forEach(k=>{const n=S.nuts.find(x=>x.key===k);const u=n&&n.unit?n.unit:'';h+=`<th>${k.toUpperCase()}${u?`<br><span style="font-weight:400;font-size:8px;opacity:.85">${u}</span>`:''}</th>`;});h+=`<th>R$/kg<br><span style="font-weight:400;font-size:8px;opacity:.85">MN</span></th><th></th></tr></thead><tbody>`;
   fl.forEach(f=>{const ck=S.sel.includes(f.id)?'checked':'';
     h+=`<tr><td><input type="checkbox" ${ck} onchange="tglSel(${f.id})"></td>`;
-    h+=`<td class="tn">${f.name}</td><td style="font-size:9px;text-align:center">${f.tipo||''}</td>`;nk.forEach(k=>h+=`<td>${n2(f[k])}</td>`);h+=`<td class="tb2">R$ ${n2(f.custoKg)}</td>`;
+    h+=`<td class="tn">${escapeHtml(f.name)}</td><td style="font-size:9px;text-align:center">${escapeHtml(f.tipo||'')}</td>`;nk.forEach(k=>h+=`<td>${n2(f[k])}</td>`);h+=`<td class="tb2">R$ ${n2(f.custoKg)}</td>`;
     h+=`<td><button class="bi" onclick="modEditFeed(${f.id})">✏️</button><button class="bi" onclick="delFeed(${f.id})">🗑️</button></td></tr>`;});
   h+=`</tbody></table></div></div><p class="tm mt6">✅ ${S.sel.length} selecionados de ${S.feeds.length} cadastrados ${S.onlySelected?'• <span style="color:var(--p);font-weight:700">Filtro de selecionados ativo</span>':''}</p>`;
   $('p-feeds').innerHTML=h;
@@ -1391,7 +1395,7 @@ async function delFeed(id){
   if(typeof autoSaveDbProfileImmediately==='function') autoSaveDbProfileImmediately();
 }
 function modAddFeed(){let h=`<h3>Novo Alimento</h3><div class="ga"><div style="grid-column:1/-1"><label class="tl">Nome</label><input type="text" id="nf_n" class="ilg" placeholder="Ex: Soja (farelo)"></div><div style="grid-column:1/-1"><label class="tl">Tipo</label><select id="nf_tipo" class="ilg"><option value="">— selecione —</option><option value="Volumoso">Volumoso</option><option value="Concentrado">Concentrado</option><option value="Mineral">Mineral</option></select></div>`;ank().forEach(k=>{const n=S.nuts.find(x=>x.key===k);h+=`<div><label class="tl">${n?nutLabelHtml(n):k}</label><input type="number" id="nf_${k}" value="0" step="0.01" class="ilg"></div>`;});h+=`<div><label class="tl">R$/kg MN</label><input type="number" id="nf_c" value="0" step="0.01" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doAddFeed()">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`;openMod(h);}
-function modEditFeed(id){const f=S.feeds.find(x=>x.id===id);if(!f)return;let h=`<h3>Editar: ${f.name}</h3><div class="ga"><div style="grid-column:1/-1"><label class="tl">Nome</label><input type="text" id="ef_n" class="ilg" value="${f.name||''}"></div><div style="grid-column:1/-1"><label class="tl">Tipo</label><select id="ef_tipo" class="ilg"><option value="">— selecione —</option><option value="Volumoso"${f.tipo==='Volumoso'?' selected':''}>Volumoso</option><option value="Concentrado"${f.tipo==='Concentrado'?' selected':''}>Concentrado</option><option value="Mineral"${f.tipo==='Mineral'?' selected':''}>Mineral</option></select></div>`;ank().forEach(k=>{const n=S.nuts.find(x=>x.key===k);h+=`<div><label class="tl">${n?nutLabelHtml(n):k}</label><input type="number" id="ef_${k}" value="${f[k]||0}" step="0.01" class="ilg"></div>`;});h+=`<div><label class="tl">R$/kg MN</label><input type="number" id="ef_c" value="${f.custoKg||0}" step="0.01" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doEditFeed(${id})">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`;openMod(h);}
+function modEditFeed(id){const f=S.feeds.find(x=>x.id===id);if(!f)return;let h=`<h3>Editar: ${escapeHtml(f.name)}</h3><div class="ga"><div style="grid-column:1/-1"><label class="tl">Nome</label><input type="text" id="ef_n" class="ilg" value="${escapeHtml(f.name||'')}"></div><div style="grid-column:1/-1"><label class="tl">Tipo</label><select id="ef_tipo" class="ilg"><option value="">— selecione —</option><option value="Volumoso"${f.tipo==='Volumoso'?' selected':''}>Volumoso</option><option value="Concentrado"${f.tipo==='Concentrado'?' selected':''}>Concentrado</option><option value="Mineral"${f.tipo==='Mineral'?' selected':''}>Mineral</option></select></div>`;ank().forEach(k=>{const n=S.nuts.find(x=>x.key===k);h+=`<div><label class="tl">${n?nutLabelHtml(n):k}</label><input type="number" id="ef_${k}" value="${f[k]||0}" step="0.01" class="ilg"></div>`;});h+=`<div><label class="tl">R$/kg MN</label><input type="number" id="ef_c" value="${f.custoKg||0}" step="0.01" class="ilg"></div></div><div style="margin-top:10px;display:flex;gap:5px"><button class="btn bp" onclick="doEditFeed(${id})">Salvar</button><button class="btn bs" onclick="closeMod()">Cancelar</button></div>`;openMod(h);}
 async function doEditFeed(id){const f=S.feeds.find(x=>x.id===id);if(!f)return;const nm=$('ef_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');const _msEd=$('ef_ms')?num($('ef_ms').value):(f.ms||0);if(!(await validateFeedBeforeSave(_msEd,num($('ef_c').value),{msField:'ef_ms',priceField:'ef_c'})))return;f.name=nm;f.tipo=$('ef_tipo').value;f.custoKg=num($('ef_c').value)||0;ank().forEach(k=>{f[k]=num($('ef_'+k).value)||0;});recalcFeedPdr(f);if(f._dbId && typeof window.api!=='undefined'&&window.api.updateCustomFeed){try{await window.api.updateCustomFeed(f._dbId,f);}catch(e){console.error(e);}}closeMod();rFeeds();if(typeof autoSaveDbProfileImmediately==='function') autoSaveDbProfileImmediately();}
 async function doAddFeed(){const nm=$('nf_n').value.trim();if(!nm)return nAlert('Nome obrigatório.');const f={id:newFeedId(),name:nm,tipo:$('nf_tipo').value||'',custoKg:num($('nf_c').value)||0};ank().forEach(k=>{f[k]=num($('nf_'+k).value)||0;});recalcFeedPdr(f);if(!(await validateFeedBeforeSave(f.ms,f.custoKg,{msField:'nf_ms',priceField:'nf_c'})))return;if(typeof window.api!=='undefined'&&window.api.saveCustomFeed){try{const dbId=await window.api.saveCustomFeed(S.sp,f);f._dbId=dbId;}catch(e){console.error(e);}}S.feeds.push(f);closeMod();rFeeds();if(typeof autoSaveDbProfileImmediately==='function') autoSaveDbProfileImmediately();}
 
@@ -1872,7 +1876,7 @@ if(!fl.length){$('p-opt').innerHTML=h+`<div class="cd es"><div class="ic">📦</
 const keys=rkf();const viols=[];keys.forEach(k=>{const r=S.req.n[k];if(!r)return;const vals=fl.map(f=>f[k]||0);if(r.min>0&&Math.max(...vals)<r.min)viols.push({k,t:'min',need:r.min,best:Math.max(...vals)});if(r.max<9999&&Math.min(...vals)>r.max)viols.push({k,t:'max',need:r.max,best:Math.min(...vals)});});
 if(viols.length){h+=`<div class="warn"><strong>⚠️ Atenção — impossível atender todas as exigências:</strong><ul style="margin:4px 0 0 14px">`;viols.forEach(v=>{const n=S.nuts.find(x=>x.key===v.k);const nm=n?n.desc:v.k;h+=v.t==='min'?`<li><strong>${nm}</strong>: mín ${n2(v.need)}, máx disponível ${n2(v.best)}</li>`:`<li><strong>${nm}</strong>: máx ${n2(v.need)}, mín dos alimentos ${n2(v.best)}</li>`;});h+=`</ul></div>`;}
 h+=`<div class="cd"><h3 class="ss">Restrições por Ingrediente</h3><div class="tw"><table><thead><tr><th>Alimento</th><th>R$/kg MS</th><th>Mín %</th><th>Máx %</th></tr></thead><tbody>`;
-fl.forEach(f=>{const c=S.fc[f.id]||{};h+=`<tr><td class="tn">${f.name}</td><td class="tb2">R$ ${n2(f.custoKg/(f.ms/100))}</td><td><input type="number" class="ism" step="1" placeholder="0" value="${c.mi!=null?c.mi:''}" onchange="setFC(${f.id},'mi',this.value)"></td><td><input type="number" class="ism" step="1" placeholder="100" value="${c.mx!=null?c.mx:''}" onchange="setFC(${f.id},'mx',this.value)"></td></tr>`;});
+fl.forEach(f=>{const c=S.fc[f.id]||{};h+=`<tr><td class="tn">${escapeHtml(f.name)}</td><td class="tb2">R$ ${n2(f.custoKg/(f.ms/100))}</td><td><input type="number" class="ism" step="1" placeholder="0" value="${c.mi!=null?c.mi:''}" onchange="setFC(${f.id},'mi',this.value)"></td><td><input type="number" class="ism" step="1" placeholder="100" value="${c.mx!=null?c.mx:''}" onchange="setFC(${f.id},'mx',this.value)"></td></tr>`;});
 h+=`</tbody></table></div></div><div class="tc mt10"><button class="btn bp blg" id="btnO" onclick="doOpt()">🚀 Calcular</button></div>`;$('p-opt').innerHTML=h;}
 function setFC(id,k,v){if(!S.fc[id])S.fc[id]={};if(String(v||'').trim()===''){delete S.fc[id][k];return;}S.fc[id][k]=num(v);}
 
@@ -1934,7 +1938,7 @@ let h=`<h2 class="st" style="margin-bottom:2px">Tentativa e Erro — Matéria Se
 if(!fl.length){$('p-teMS').innerHTML=h+`<div class="cd es"><div class="ic">📦</div>Nenhum alimento selecionado.</div>`;return;}
 if(!Object.keys(S.mMS).length&&fl.length){S.mMS[fl[0].id]=100;}
 h+=`<div class="cd"><h3 class="ss">Proporções (%MS)</h3>`;
-fl.forEach(f=>{const v=S.mMS[f.id]||0;const cMS=f.custoKg/(f.ms/100);h+=`<div class="sr"><span class="nm">${f.name} <span style="font-size:9px;color:var(--c5)">(R$ ${cMS.toFixed(2)}/kg MS)</span></span><input type="range" min="0" max="100" step="0.1" value="${v}" oninput="adjMS(${f.id},this.value)" data-ms="${f.id}"><input type="number" step="0.01" min="0" max="100" value="${v}" class="ism" oninput="setMSDirect(${f.id},this.value)" onchange="setMSDirect(${f.id},this.value,true)"><span class="u">%</span></div>`;});
+fl.forEach(f=>{const v=S.mMS[f.id]||0;const cMS=f.custoKg/(f.ms/100);h+=`<div class="sr"><span class="nm">${escapeHtml(f.name)} <span style="font-size:9px;color:var(--c5)">(R$ ${cMS.toFixed(2)}/kg MS)</span></span><input type="range" min="0" max="100" step="0.1" value="${v}" oninput="adjMS(${f.id},this.value)" data-ms="${f.id}"><input type="number" step="0.01" min="0" max="100" value="${v}" class="ism" oninput="setMSDirect(${f.id},this.value)" onchange="setMSDirect(${f.id},this.value,true)"><span class="u">%</span></div>`;});
 h+=`<div id="msSB"></div></div><div id="msR"></div>`;$('p-teMS').innerHTML=h;updMSR();}
 function setMSDirect(id,val,isChange){const nv=Math.max(0,Math.min(100,num(val)||0));S.mMS[id]=nv;S.dirty=true;const sl=document.querySelector(`[data-ms="${id}"]`);if(sl){sl.value=nv;if(isChange&&sl.nextElementSibling){sl.nextElementSibling.value=nv.toFixed(2);}}updMSR();}
 function adjMS(id,val){S.dirty=true;const fl=selfn();const nv=Math.max(0,Math.min(100,num(val)||0));const old=S.mMS[id]||0;const diff=nv-old;S.mMS[id]=nv;
@@ -1951,7 +1955,7 @@ if(!fl.length){$('p-prc').innerHTML=h+`<div class="cd es"><div class="ic">💰</
 h+=`<div class="cd"><div class="tw"><table><thead><tr><th>Alimento</th><th>Tipo</th><th>R$/kg MN</th><th>R$/kg MS</th></tr></thead><tbody>`;
 fl.forEach(f=>{
   const cMS=f.custoKg/(f.ms/100);
-  h+=`<tr><td class="tn">${f.name}</td><td>${f.tipo||''}</td>
+  h+=`<tr><td class="tn">${escapeHtml(f.name)}</td><td>${escapeHtml(f.tipo||'')}</td>
   <td><input type="number" step="0.01" class="ism prc-in" value="${f.custoKg}" onfocus="this.select()" onchange="upF(${f.id},'custoKg',this.value);updPrcRow(${f.id})" onkeydown="prcKey(event,this)"></td>
   <td id="prcMS_${f.id}">R$ ${n2(cMS)}</td></tr>`;
 });
@@ -1972,7 +1976,7 @@ let h=`<h2 class="st" style="margin-bottom:2px">Tentativa e Erro — Matéria Na
 if(!fl.length){$('p-teMN').innerHTML=h+`<div class="cd es"><div class="ic">📦</div>Nenhum alimento selecionado.</div>`;return;}
 h+=`<div class="te-grid">`;
 h+=`<div class="cd"><h3 class="ss">Quantidade (kg MN/dia)</h3>`;
-fl.forEach(f=>{const v=S.mMN[f.id]||0;const cMS=f.custoKg/(f.ms/100);h+=`<div class="sr"><span class="nm">${f.name} <span style="font-size:9px;color:var(--c5)">(R$ ${cMS.toFixed(2)}/kg MS)</span></span><input type="number" step="0.01" min="0" value="${v}" style="width:82px;text-align:center" onchange="S.mMN[${f.id}]=parseFloat(this.value)||0;S.dirty=true;updMNR()"><span class="u">kg</span></div>`;});
+fl.forEach(f=>{const v=S.mMN[f.id]||0;const cMS=f.custoKg/(f.ms/100);h+=`<div class="sr"><span class="nm">${escapeHtml(f.name)} <span style="font-size:9px;color:var(--c5)">(R$ ${cMS.toFixed(2)}/kg MS)</span></span><input type="number" step="0.01" min="0" value="${v}" style="width:82px;text-align:center" onchange="S.mMN[${f.id}]=parseFloat(this.value)||0;S.dirty=true;updMNR()"><span class="u">kg</span></div>`;});
 h+=`<div id="mnSB"></div></div><div id="mnR"></div>`;
 h+=`</div>`;
 $('p-teMN').innerHTML=h;updMNR();}
@@ -1998,13 +2002,13 @@ const colors=["#14532d","#166534","#22863a","#4ade80","#86efac","#15803d","#a3e6
 let tPct=0,tKgMS=0,tKgMN=0,tCost=0;
 fl.forEach((f,i)=>{const p=norm[i];if(p<.00001)return;const kms=p*(S.req.cms||10);const kmn=kms/(f.ms/100);const cst=kmn*f.custoKg;const cMS=f.custoKg/(f.ms/100);
 tPct+=p*100;tKgMS+=kms;tKgMN+=kmn;tCost+=cst;
-h+=`<tr><td class="tn">${f.name}</td><td class="tb2">${fmt(p*100,1)}%</td><td>${fmt(kms,3)}</td><td>R$ ${n2(cMS)}</td><td>${fmt(kmn,3)}</td><td>R$ ${n2(f.custoKg)}</td><td>R$ ${n2(cst)}</td></tr>`;});
+h+=`<tr><td class="tn">${escapeHtml(f.name)}</td><td class="tb2">${fmt(p*100,1)}%</td><td>${fmt(kms,3)}</td><td>R$ ${n2(cMS)}</td><td>${fmt(kmn,3)}</td><td>R$ ${n2(f.custoKg)}</td><td>R$ ${n2(cst)}</td></tr>`;});
 h+=`<tr style="font-weight:800;border-top:2px solid #14532d;background:#f0fdf4"><td class="tn">TOTAL</td><td class="tb2">${fmt(tPct,1)}%</td><td>${fmt(tKgMS,3)}</td><td>R$ ${n2(tc)}</td><td>${fmt(tKgMN,3)}</td><td></td><td>R$ ${n2(tCost)}</td></tr>`;
 h+=`</tbody></table></div>`;
 // Bars (hidden in print via class)
 h+=`<div class="mt10 bars-chart no-print">`;fl.forEach((f,i)=>{const p=norm[i];if(p<.00001)return;const pct=p*100;const col=colors[i%colors.length];
-if(pct<12)h+=`<div class="br"><span class="blb">${f.name}</span><div class="btr"><div class="bfl" style="width:${pct}%;background:${col}"><span class="out" style="color:${col}">${fmt(pct,1)}%</span></div></div></div>`;
-else h+=`<div class="br"><span class="blb">${f.name}</span><div class="btr"><div class="bfl" style="width:${pct}%;background:${col}"><span class="in">${fmt(pct,1)}%</span></div></div></div>`;});
+if(pct<12)h+=`<div class="br"><span class="blb">${escapeHtml(f.name)}</span><div class="btr"><div class="bfl" style="width:${pct}%;background:${col}"><span class="out" style="color:${col}">${fmt(pct,1)}%</span></div></div></div>`;
+else h+=`<div class="br"><span class="blb">${escapeHtml(f.name)}</span><div class="btr"><div class="bfl" style="width:${pct}%;background:${col}"><span class="in">${fmt(pct,1)}%</span></div></div></div>`;});
 h+=`</div></div>`;
 // Print + Save buttons
 if(srcId)h+=`<div class="tc mt10 no-print fg" style="justify-content:center"><button class="btn bp blg" onclick="printContent('${srcId}')">🖨️ Imprimir</button><button class="btn bs blg" onclick="saveDietFromTE('${srcId}',${JSON.stringify(tcd).replace(/'/g,'')})">💾 Salvar Dieta</button></div>`;
@@ -2028,12 +2032,12 @@ h+=`<div class="cd"><h3 class="ss">Composição</h3><div class="tw"><table><thea
 let rtPct=0,rtKMS=0,rtKMN=0,rtCst=0;
 fl.forEach((f,i)=>{const p=R.props[i];if(p<.00001)return;const kms=p*req.cms;const kmn=kms/(f.ms/100);const cst=kmn*f.custoKg;
 rtPct+=p*100;rtKMS+=kms;rtKMN+=kmn;rtCst+=cst;
-h+=`<tr><td class="tn">${f.name}</td><td class="tb2">${fmt(p*100,1)}%</td><td>${fmt(kms,3)}</td><td>${fmt(kmn,3)}</td><td>R$ ${n2(cst)}</td></tr>`;});
+h+=`<tr><td class="tn">${escapeHtml(f.name)}</td><td class="tb2">${fmt(p*100,1)}%</td><td>${fmt(kms,3)}</td><td>${fmt(kmn,3)}</td><td>R$ ${n2(cst)}</td></tr>`;});
 h+=`<tr style="font-weight:800;border-top:2px solid #14532d;background:#f0fdf4"><td class="tn">TOTAL</td><td class="tb2">${fmt(rtPct,1)}%</td><td>${fmt(rtKMS,3)}</td><td>${fmt(rtKMN,3)}</td><td>R$ ${n2(rtCst)}</td></tr>`;
 h+=`</tbody></table></div><div class="mt10 bars-chart no-print">`;
 fl.forEach((f,i)=>{const p=R.props[i];if(p<.00001)return;const pct=p*100;const col=colors[i%colors.length];
-if(pct<12)h+=`<div class="br"><span class="blb">${f.name}</span><div class="btr"><div class="bfl" style="width:${pct}%;background:${col}"><span class="out" style="color:${col}">${fmt(pct,1)}%</span></div></div></div>`;
-else h+=`<div class="br"><span class="blb">${f.name}</span><div class="btr"><div class="bfl" style="width:${pct}%;background:${col}"><span class="in">${fmt(pct,1)}%</span></div></div></div>`;});
+if(pct<12)h+=`<div class="br"><span class="blb">${escapeHtml(f.name)}</span><div class="btr"><div class="bfl" style="width:${pct}%;background:${col}"><span class="out" style="color:${col}">${fmt(pct,1)}%</span></div></div></div>`;
+else h+=`<div class="br"><span class="blb">${escapeHtml(f.name)}</span><div class="btr"><div class="bfl" style="width:${pct}%;background:${col}"><span class="in">${fmt(pct,1)}%</span></div></div></div>`;});
 h+=`</div></div>`;
 h+=`<div class="cd"><h3 class="ss">Atendimento das Exigências</h3><div class="tw"><table><thead><tr><th>Nutriente</th><th>Mín.</th><th>Dieta</th><th>Máx.</th><th>Status</th></tr></thead><tbody>`;
 keys.forEach(k=>{const n=S.nuts.find(x=>x.key===k);const r=req.n[k]||{};const v=R.nuts[k]||0;h+=`<tr><td class="tn">${n?n.desc:k}</td><td>${r.min>0?n2(r.min):'—'}</td><td style="font-weight:700;color:var(--p);font-size:12px">${n2(v)}</td><td>${r.max<9999?n2(r.max):'—'}</td><td>${badge(v,r.min,r.max)}</td></tr>`;});
@@ -2439,18 +2443,25 @@ if (HAS_API) {
   // ── LIST DIETS ──
   rDiets = async function() {
     try {
-      const diets = await window.api.getDiets();
-      console.log('Loaded diets:', diets.length);
-      let h = '<h2 class="st">Dietas Salvas</h2>';
-      if (!diets.length) {
-        h += '<div class="cd es"><div class="ic">💾</div>Nenhuma dieta salva.<br><span class="tm">Formule uma dieta e clique em "Salvar Dieta" nos resultados.</span></div>';
-      } else {
-        diets.forEach(d => {
-          h += '<div class="diet-item"><div class="di-info"><div class="di-name">' + d.name + '</div><div class="di-meta">' + (d.species_label||d.species_id||'') + ' • ' + (d.date||'') + ' • R$ ' + n2(d.cost_day||0) + '/dia' + (d.source?' • '+d.source:'') + '</div></div><button class="btn bp" onclick="loadDietDB(' + d.id + ')">Carregar</button><button class="btn bs" onclick="editDietDB(' + d.id + ')">Editar</button><button class="btn bd" onclick="deleteDietDB(' + d.id + ')">Excluir</button></div>';
-        });
-      }
-      $('p-diets').innerHTML = h;
+      window._dietList = await window.api.getDiets();
+      dietRenderList();
     } catch(e) { console.error('rDiets error:', e); }
+  };
+
+  function dietEsc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  window.dietRenderList = function() {
+    const diets = window._dietList || [];
+    let h = '<h2 class="st">Dietas Salvas</h2>';
+    if (!diets.length) {
+      h += '<div class="cd es"><div class="ic">💾</div>Nenhuma dieta salva.<br><span class="tm">Formule uma dieta e clique em "Salvar Dieta" nos resultados.</span></div>';
+      $('p-diets').innerHTML = h; return;
+    }
+    diets.forEach(d => {
+      h += '<div class="diet-item"><div class="di-info"><div class="di-name">' + dietEsc(d.name) + '</div><div class="di-meta">' + dietEsc(d.species_label || '') + ' • ' + dietEsc(d.date || '') + ' • R$ ' + n2(d.cost_day || 0) + '/dia' + (d.source ? ' • ' + dietEsc(d.source) : '') + '</div></div>'
+        + '<button class="btn bp" onclick="loadDietDB(' + d.id + ')">Carregar</button><button class="btn bs" onclick="editDietDB(' + d.id + ')">Editar</button><button class="btn bd" onclick="deleteDietDB(' + d.id + ')">Excluir</button></div>';
+    });
+    $('p-diets').innerHTML = h;
   };
 
   // ── LOAD DIET ──
@@ -2778,5 +2789,8 @@ function checkAppUpdate() {
   }
 }
 </script>
+<script src="feed-transfer.js"></script>
+<script src="feed-transfer-ui.js"></script>
+<script src="catalog-ui.js"></script>
 </body>
 </html>
