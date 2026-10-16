@@ -4,8 +4,6 @@ O responsável pelo NutriCalc mantém o catálogo oficial no GitHub. Os usuário
 
 ## Administração
 
-No computador de desenvolvimento, a ferramenta privada em `admin-local/Abrir-Administrador.ps1` permite abrir seu SQLite em modo somente leitura, escolher o banco e selecionar alimentos para gerar o `foods.json` automaticamente. Consulte `admin-local/LEIA-ME.md`. Essa pasta é ignorada pelo Git e não é incluída no instalador público; mantenha uma cópia privada para backup. Se usar a ferramenta, ela cuida dos IDs, da revisão e da validação. Depois, basta publicar o arquivo gerado no GitHub.
-
 A permissão para publicar é o acesso de escrita ao repositório `bicomv/nutricalc-app`. Mantenha somente sua conta e acessos explicitamente autorizados com essa permissão. O e-mail `jcarevalojr@gmail.com` não cria privilégios no app: não existe login nem botão administrativo nele. Nenhuma credencial do GitHub é distribuída no instalador.
 
 1. Edite `catalog/foods.json`, incluindo os alimentos que deseja distribuir.
