@@ -1348,7 +1348,8 @@ function rFeeds(){
   const nk=ank();
   let h=`<div class="fb mb10"><div class="fc" style="gap:10px"><h2 class="st" style="margin:0">Alimentos</h2><span class="bg ${S.onlySelected?'bg-ok':''}" style="border:1px solid var(--c4)">${S.sel.length} selecionado(s) / ${S.feeds.length} total</span></div>`;
   h+=`<div class="fg"><input type="text" id="feedSearch" placeholder="🔍 Buscar alimento..." class="imd" style="flex:1;min-width:200px" value="${S.search}" oninput="onFeedSearch(this.value)">`;
-  h+=`<button class="btn ${S.onlySelected?'bp':'bs'}" onclick="S.onlySelected=!S.onlySelected;rFeeds()" title="Alternar entre ver todos e apenas os marcados">${S.onlySelected?'👁️ Ver Todos':'📋 Apenas Selecionados ('+S.sel.length+')'}</button>`;
+  h+=`<button class="btn ${!S.onlySelected?'bp':'bs'}" onclick="S.onlySelected=false;rFeeds()" title="Ver todos os alimentos cadastrados">👁️ Ver Todos</button>`;
+  h+=`<button class="btn ${S.onlySelected?'bp':'bs'}" onclick="S.onlySelected=true;rFeeds()" title="Ver apenas os alimentos marcados">📋 Apenas Selecionados (${S.sel.length})</button>`;
   h+=`<button class="btn bp" onclick="modAddFeed()">＋ Adicionar</button>`;
   h+=`<span class="dd"><button class="btn bs" style="border-color:var(--p3);color:var(--p)" onclick="toggleMenu(event,'impMenu')" title="Importar alimentos">📥 Importar <span style="opacity:.6">▾</span></button>`;
   h+=`<div id="impMenu" class="dd-menu hid">`;
@@ -1370,7 +1371,7 @@ function rFeeds(){
     return;
   }
 
-  h+=`<div class="fc mb10" style="gap:12px;font-size:11.5px;color:var(--c6)"><span class="bg bg-ok" style="border:1px solid var(--p5)">${S.sel.length} selecionados</span><span>de ${S.feeds.length} no banco (Banco: ${S.activeDbProfileName||'Padrão'})</span><span style="margin-left:auto;color:var(--p2);font-weight:700;cursor:pointer" onclick="selectAllVisible()">Selecionar todos</span><span style="cursor:pointer;color:var(--c6)" onclick="clearFeedSelection()">Limpar</span></div>`;
+  h+=`<div class="fc mb10" style="gap:12px;font-size:11.5px;color:var(--c6)"><span class="bg bg-ok" style="border:1px solid var(--p5)">${S.sel.length} selecionados</span><span class="bg bg-e" style="border:1px solid #fca5a5">${S.feeds.length-S.sel.length} desmarcados</span><span>de ${S.feeds.length} no banco (Banco: ${S.activeDbProfileName||'Padrão'})</span><span style="margin-left:auto;color:var(--p2);font-weight:700;cursor:pointer" onclick="selectAllVisible()">Selecionar todos</span><span style="cursor:pointer;color:var(--c6)" onclick="clearFeedSelection()">Limpar</span></div>`;
   h+=`<div class="cd" style="padding:0"><div class="tw"><table><thead><tr><th>✓</th><th>Alimento</th><th>Tipo</th>`;nk.forEach(k=>{const n=S.nuts.find(x=>x.key===k);const u=n&&n.unit?n.unit:'';h+=`<th>${k.toUpperCase()}${u?`<br><span style="font-weight:400;font-size:8px;opacity:.85">${u}</span>`:''}</th>`;});h+=`<th>R$/kg<br><span style="font-weight:400;font-size:8px;opacity:.85">MN</span></th><th></th></tr></thead><tbody>`;
   fl.forEach(f=>{const ck=S.sel.includes(f.id)?'checked':'';
     h+=`<tr><td><input type="checkbox" ${ck} onchange="tglSel(${f.id})"></td>`;
@@ -2049,7 +2050,7 @@ $('p-res').innerHTML=h;}
 // ══════════ DIETS ══════════
 function rDiets(){let h=`<h2 class="st">Dietas Salvas</h2>`;
 if(!S.diets.length)h+=`<div class="cd es"><div class="ic">💾</div>Nenhuma dieta salva.</div>`;
-else S.diets.forEach((d,i)=>{h+=`<div class="diet-item"><div class="di-info"><div class="di-name">${d.name}</div><div class="di-meta">${d.sp} • ${d.date} • R$ ${n2(d.cDay)}/dia</div></div><button class="btn bs" onclick="loadDiet(${i})">Carregar</button><button class="btn bd" onclick="(async()=>{if(await nConfirm('Excluir?')){S.diets.splice(${i},1);rDiets();}})()">🗑️</button></div>`;});
+else S.diets.forEach((d,i)=>{h+=`<div class="diet-item"><div class="di-info"><div class="di-name">${d.name}</div><div class="di-meta">${d.sp} • ${d.date} • R$ ${n2(d.cDay)}/dia</div></div><button class="btn bs" onclick="loadDiet(${i})">Carregar</button><button class="btn bs" onclick="printSavedDiet(${i})" title="Imprimir esta dieta">🖨️</button><button class="btn bd" onclick="(async()=>{if(await nConfirm('Excluir?')){S.diets.splice(${i},1);rDiets();}})()">🗑️</button></div>`;});
 $('p-diets').innerHTML=h;}
 async function saveDiet(){if(!S.optR||S.optR.error)return nAlert('Nenhuma formulação válida.');const nm=await nPrompt('Nome da dieta:','Dieta '+(S.diets.length+1));if(!nm)return;
 S.diets.push({name:nm,sp:DB[S.sp]?.label||S.sp,date:new Date().toLocaleDateString('pt-BR'),cDay:S.optR.cDay,state:JSON.parse(JSON.stringify({sp:S.sp,sel:S.sel,req:S.req,fc:S.fc,optR:S.optR,nuts:S.nuts,feeds:S.feeds}))});S.unsaved=true;updFt();nAlert('Dieta "'+nm+'" salva!');}
@@ -2393,6 +2394,28 @@ w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Nutric
 </style><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'DM Sans',sans-serif;color:#1e293b;padding:20px;font-size:11px;}.ph{text-align:center;border-bottom:3px solid #14532d;padding-bottom:10px;margin-bottom:6px;}.ph h1{font-family:'Playfair Display',serif;font-size:20px;color:#14532d;}.ph p{font-size:9px;color:#666;margin-top:2px;}.pf{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px;font-size:10px;}.pf label{font-weight:700;color:#14532d;}.pf input{border:none;border-bottom:1px solid #999;font-family:'DM Sans';font-size:10px;width:150px;padding:2px 0;}.cd{border:1px solid #ccc;border-radius:8px;padding:12px;margin-bottom:10px;page-break-inside:avoid;}.cd-d{background:#14532d;color:#fff;border:none;}h3{font-size:11px;color:#14532d;margin-bottom:5px;}table{width:100%;border-collapse:collapse;}th{background:#e5e7eb;font-size:8px;text-transform:uppercase;padding:4px 3px;text-align:center;font-family:'DM Mono';}th:first-child{text-align:left;padding-left:8px;}td{padding:4px 3px;border-bottom:1px solid #ddd;text-align:center;font-size:10px;font-family:'DM Mono';}td:first-child{text-align:left;padding-left:8px;}tr:nth-child(even){background:#f8f8f8;}.tn{font-family:'DM Sans';font-weight:600;}.tb2{font-weight:700;color:#14532d;}.bg{padding:1px 6px;border-radius:8px;font-size:8px;font-weight:700;}.bg-ok{background:#dcfce7;color:#14532d;}.bg-e{background:#fef2f2;color:#991b1b;}.cg,.cgd{display:flex;justify-content:space-around;flex-wrap:wrap;gap:6px;padding:8px;}.cgl{padding:8px;background:#f0fdf4;border-radius:6px;border:1px solid #bbf7d0;margin-top:8px;}.ci{text-align:center;}.ci .lb{font-size:8px;font-weight:700;text-transform:uppercase;}.ci .vl{font-size:15px;font-weight:900;font-family:'DM Mono';}.ratio{margin-top:5px;padding:6px 10px;background:#f1f5f9;border-radius:5px;font-size:10px;}.br{display:flex;align-items:center;gap:5px;margin-bottom:3px;}.blb{font-size:9px;width:110px;text-align:right;}.btr{flex:1;background:#e2e8f0;border-radius:4px;height:16px;position:relative;}.bfl{height:100%;border-radius:4px;display:flex;align-items:center;position:relative;}.bfl .in{font-size:8px;color:#fff;font-weight:700;padding-right:3px;margin-left:auto;}.bfl .out{position:absolute;left:calc(100% + 3px);font-size:8px;font-weight:700;white-space:nowrap;}.pft{text-align:center;font-size:8px;color:#333;margin-top:14px;border-top:1px solid #ccc;padding-top:6px;}.no-print,.btn,.bi,.b-open,.sb,.sr,.tabs,.hdr,.bars-chart{display:none!important;}body,td,th,span,p,div,label{color:#1e293b!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}.ph p{color:#333!important;}.pf span,.pf label{color:#1e293b!important;}.cd-d,.cd-d *{color:#fff!important;}.bg-ok{background:#dcfce7!important;color:#14532d!important;}.bg-e{background:#fef2f2!important;color:#991b1b!important;}.tb2{color:#14532d!important;}</style></head><body><div class="ph"><h1>${db.icon||'🧬'} Nutricalc — ${title}</h1><p>${db.label||''} • ${new Date().toLocaleDateString('pt-BR')}</p></div><div class="pf">${S.info.responsavel?'<div><label>Responsável: </label><span>'+S.info.responsavel+'</span></div>':''}${S.info.dieta?'<div><label>Dieta: </label><span>'+S.info.dieta+'</span></div>':''}${S.info.propriedade?'<div><label>Propriedade: </label><span>'+S.info.propriedade+'</span></div>':''}${S.info.animal?'<div><label>Animal/Lote: </label><span>'+S.info.animal+'</span></div>':''}</div>${c}<div class="pft">Nutricalc • Criador: José C. Arevalo Jr. (jcarevalojr@gmail.com) • Colaboradores: Luiz G. S. Maistro, Marcos A. A. Silva, Petrônio P. Porto, Simone F. N. Pertile</div></body></html>`);
 w.document.close();setTimeout(()=>w.print(),400);}
 
+// Imprime uma dieta salva (lista "Dietas Salvas") sem alterar a formulação
+// em andamento: troca o estado global S temporariamente só para gerar o
+// HTML impresso e restaura tudo em seguida.
+function printDietState(state){
+  if(!state)return nAlert('Dieta sem dados para impressão.');
+  const backup={sp:S.sp,nuts:S.nuts,feeds:S.feeds,sel:S.sel,req:S.req,info:S.info,optR:S.optR,mMS:S.mMS,mMN:S.mMN};
+  if(state.sp)S.sp=state.sp;
+  if(state.nuts)S.nuts=state.nuts;
+  if(state.feeds)S.feeds=state.feeds;
+  if(state.sel)S.sel=state.sel;
+  if(state.req)S.req=state.req;
+  S.info=state.info||{};
+  if(state.optR){S.optR=state.optR;rRes();printContent('p-res');}
+  else if(state.mMS&&Object.keys(state.mMS).length){S.mMS=state.mMS;rTeMS();printContent('msR');}
+  else if(state.mMN&&Object.keys(state.mMN).length){S.mMN=state.mMN;rTeMN();printContent('mnR');}
+  else{Object.assign(S,backup);return nAlert('Esta dieta não possui resultado para impressão.');}
+  Object.assign(S,backup);
+  const at=document.querySelector('.tab.on');
+  ({info:rInfo,dbs:rDbs,feeds:rFeeds,nuts:rNuts,reqs:rReqs,opt:rOpt,teMS:rTeMS,teMN:rTeMN,res:rRes,prc:rPrc,diets:rDiets,cmp:rCmp})[at?.dataset.t]?.();
+}
+function printSavedDiet(i){printDietState(S.diets[i]&&S.diets[i].state);}
+
 // ══════════ EXPORT/IMPORT ══════════
 function exportJSON(){const d={v:'Nutricalc_v4',date:new Date().toISOString(),sp:S.sp,nuts:S.nuts,feeds:S.feeds,sel:S.sel,presets:S.presets,aPre:S.aPre,req:S.req,fc:S.fc,nxId:S.nxId,diets:S.diets};
 const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`nutricalc_${S.sp||'data'}_${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(u);S.unsaved=false;updFt();}
@@ -2460,7 +2483,7 @@ if (HAS_API) {
     }
     diets.forEach(d => {
       h += '<div class="diet-item"><div class="di-info"><div class="di-name">' + dietEsc(d.name) + '</div><div class="di-meta">' + dietEsc(d.species_label || '') + ' • ' + dietEsc(d.date || '') + ' • R$ ' + n2(d.cost_day || 0) + '/dia' + (d.source ? ' • ' + dietEsc(d.source) : '') + '</div></div>'
-        + '<button class="btn bp" onclick="loadDietDB(' + d.id + ')">Carregar</button><button class="btn bs" onclick="editDietDB(' + d.id + ')">Editar</button><button class="btn bd" onclick="deleteDietDB(' + d.id + ')">Excluir</button></div>';
+        + '<button class="btn bp" onclick="loadDietDB(' + d.id + ')">Carregar</button><button class="btn bs" onclick="editDietDB(' + d.id + ')">Editar</button><button class="btn bs" onclick="printDietDB(' + d.id + ')" title="Imprimir esta dieta">🖨️</button><button class="btn bd" onclick="deleteDietDB(' + d.id + ')">Excluir</button></div>';
     });
     $('p-diets').innerHTML = h;
   };
@@ -2502,6 +2525,16 @@ if (HAS_API) {
       });
       rDiets();
     } catch(e) { console.error('editDiet error:', e); nAlert('Erro: ' + e.message); }
+  };
+
+  // ── PRINT DIET ──
+  window.printDietDB = async function(id) {
+    try {
+      const diets = await window.api.getDiets();
+      const d = diets.find(function(x){return x.id===id;});
+      if (!d || !d.state) return nAlert('Dieta sem dados para impressão.');
+      printDietState(d.state);
+    } catch(e) { console.error('printDietDB error:', e); nAlert('Erro: ' + e.message); }
   };
 
   // ── DELETE DIET ──
