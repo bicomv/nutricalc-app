@@ -1348,8 +1348,6 @@ function rFeeds(){
   const nk=ank();
   let h=`<div class="fb mb10"><div class="fc" style="gap:10px"><h2 class="st" style="margin:0">Alimentos</h2><span class="bg ${S.onlySelected?'bg-ok':''}" style="border:1px solid var(--c4)">${S.sel.length} selecionado(s) / ${S.feeds.length} total</span></div>`;
   h+=`<div class="fg"><input type="text" id="feedSearch" placeholder="🔍 Buscar alimento..." class="imd" style="flex:1;min-width:200px" value="${S.search}" oninput="onFeedSearch(this.value)">`;
-  h+=`<button class="btn ${!S.onlySelected?'bp':'bs'}" onclick="S.onlySelected=false;rFeeds()" title="Ver todos os alimentos cadastrados">👁️ Ver Todos</button>`;
-  h+=`<button class="btn ${S.onlySelected?'bp':'bs'}" onclick="S.onlySelected=true;rFeeds()" title="Ver apenas os alimentos marcados">📋 Apenas Selecionados (${S.sel.length})</button>`;
   h+=`<button class="btn bp" onclick="modAddFeed()">＋ Adicionar</button>`;
   h+=`<span class="dd"><button class="btn bs" style="border-color:var(--p3);color:var(--p)" onclick="toggleMenu(event,'impMenu')" title="Importar alimentos">📥 Importar <span style="opacity:.6">▾</span></button>`;
   h+=`<div id="impMenu" class="dd-menu hid">`;
@@ -1371,11 +1369,11 @@ function rFeeds(){
     return;
   }
 
-  h+=`<div class="fc mb10" style="gap:12px;font-size:11.5px;color:var(--c6)"><span class="bg bg-ok" style="border:1px solid var(--p5)">${S.sel.length} selecionados</span><span class="bg bg-e" style="border:1px solid #fca5a5">${S.feeds.length-S.sel.length} desmarcados</span><span>de ${S.feeds.length} no banco (Banco: ${S.activeDbProfileName||'Padrão'})</span><span style="margin-left:auto;color:var(--p2);font-weight:700;cursor:pointer" onclick="selectAllVisible()">Selecionar todos</span><span style="cursor:pointer;color:var(--c6)" onclick="clearFeedSelection()">Limpar</span></div>`;
+  h+=`<div class="fc mb10" style="gap:12px;font-size:11.5px;color:var(--c6)"><span class="bg bg-ok" style="border:1px solid var(--p5)">${S.sel.length} selecionados</span><span class="bg bg-e" style="border:1px solid #fca5a5">${S.feeds.length-S.sel.length} desmarcados</span><button class="btn ${!S.onlySelected?'bp':'bs'}" style="padding:3px 10px;font-size:10.5px" onclick="S.onlySelected=false;rFeeds()" title="Ver todos os alimentos cadastrados">👁️ Ver Todos</button><button class="btn ${S.onlySelected?'bp':'bs'}" style="padding:3px 10px;font-size:10.5px" onclick="S.onlySelected=true;rFeeds()" title="Ver apenas os alimentos marcados">📋 Apenas Selecionados (${S.sel.length})</button><span>de ${S.feeds.length} no banco (Banco: ${S.activeDbProfileName||'Padrão'})</span><span style="margin-left:auto;color:var(--p2);font-weight:700;cursor:pointer" onclick="selectAllVisible()">Selecionar todos</span><span style="cursor:pointer;color:var(--c6)" onclick="clearFeedSelection()">Limpar</span></div>`;
   h+=`<div class="cd" style="padding:0"><div class="tw"><table><thead><tr><th>✓</th><th>Alimento</th><th>Tipo</th>`;nk.forEach(k=>{const n=S.nuts.find(x=>x.key===k);const u=n&&n.unit?n.unit:'';h+=`<th>${k.toUpperCase()}${u?`<br><span style="font-weight:400;font-size:8px;opacity:.85">${u}</span>`:''}</th>`;});h+=`<th>R$/kg<br><span style="font-weight:400;font-size:8px;opacity:.85">MN</span></th><th></th></tr></thead><tbody>`;
-  fl.forEach(f=>{const ck=S.sel.includes(f.id)?'checked':'';
-    h+=`<tr><td><input type="checkbox" ${ck} onchange="tglSel(${f.id})"></td>`;
-    h+=`<td class="tn">${escapeHtml(f.name)}</td><td style="font-size:9px;text-align:center">${escapeHtml(f.tipo||'')}</td>`;nk.forEach(k=>h+=`<td>${n2(f[k])}</td>`);h+=`<td class="tb2">R$ ${n2(f.custoKg)}</td>`;
+  fl.forEach(f=>{const sel=S.sel.includes(f.id);const ck=sel?'checked':'';
+    h+=`<tr style="background:${sel?'var(--p7)':'var(--rbg)'}"><td><input type="checkbox" ${ck} onchange="tglSel(${f.id})"></td>`;
+    h+=`<td class="tn" style="color:${sel?'var(--p)':'var(--rtx)'}">${escapeHtml(f.name)}</td><td style="font-size:9px;text-align:center">${escapeHtml(f.tipo||'')}</td>`;nk.forEach(k=>h+=`<td>${n2(f[k])}</td>`);h+=`<td class="tb2">R$ ${n2(f.custoKg)}</td>`;
     h+=`<td><button class="bi" onclick="modEditFeed(${f.id})">✏️</button><button class="bi" onclick="delFeed(${f.id})">🗑️</button></td></tr>`;});
   h+=`</tbody></table></div></div><p class="tm mt6">✅ ${S.sel.length} selecionados de ${S.feeds.length} cadastrados ${S.onlySelected?'• <span style="color:var(--p);font-weight:700">Filtro de selecionados ativo</span>':''}</p>`;
   $('p-feeds').innerHTML=h;
