@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": 4,
+  "revision": 5,
   "feeds": [
     {
       "id": "ruminantes-208efa9fe9a174231fd2",
@@ -363,6 +363,717 @@
         "co": 0,
         "se": 0,
         "custoKg": 5.85
+      }
+    },
+    {
+      "id": "aves-6f05ae70c5a5c0d4aa69",
+      "species": "aves",
+      "feed": {
+        "name": "Algodão, farelo 28% PB",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 1.86,
+        "em": 1622,
+        "pb": 28.3,
+        "fb": 23.7,
+        "lis": 0.93,
+        "met": 0.68,
+        "ca": 0.22,
+        "pd": 0.19,
+        "na": 0.04
+      }
+    },
+    {
+      "id": "suinos-9c9bfa0a92fca5227016",
+      "species": "suinos",
+      "feed": {
+        "name": "Algodão, farelo 28% PB",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 1.86,
+        "em": 1996,
+        "pb": 28.3,
+        "fb": 23.7,
+        "lis": 0.74,
+        "met": 0.69,
+        "ca": 0.22,
+        "pd": 0.19,
+        "na": 0.04
+      }
+    },
+    {
+      "id": "aves-4c45c87f81b2cba57e93",
+      "species": "aves",
+      "feed": {
+        "name": "Algodão, farelo 38% PB",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 2.2,
+        "em": 1951,
+        "pb": 38.1,
+        "fb": 15.4,
+        "lis": 1.15,
+        "met": 0.87,
+        "ca": 0.3,
+        "pd": 0.38,
+        "na": 0.09
+      }
+    },
+    {
+      "id": "suinos-e2605bdf9d0b79092611",
+      "species": "suinos",
+      "feed": {
+        "name": "Algodão, farelo 38% PB",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 2.2,
+        "em": 2432,
+        "pb": 38.1,
+        "fb": 15.4,
+        "lis": 0.97,
+        "met": 0.9,
+        "ca": 0.3,
+        "pd": 0.38,
+        "na": 0.09
+      }
+    },
+    {
+      "id": "aves-be722c605ea7f0cc8639",
+      "species": "aves",
+      "feed": {
+        "name": "Algodão, farelo 43% PB",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 2.7,
+        "em": 2000,
+        "pb": 42.9,
+        "fb": 12.6,
+        "lis": 1.11,
+        "met": 0.93,
+        "ca": 0.23,
+        "pd": 0.46,
+        "na": 0.13
+      }
+    },
+    {
+      "id": "suinos-770a374cf51861e5e3d6",
+      "species": "suinos",
+      "feed": {
+        "name": "Algodão, farelo 43% PB",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 2.7,
+        "em": 2630,
+        "pb": 42.9,
+        "fb": 12.6,
+        "lis": 1.18,
+        "met": 1,
+        "ca": 0.23,
+        "pd": 0.46,
+        "na": 0.13
+      }
+    },
+    {
+      "id": "aves-bfffd71b5b06f9a65a75",
+      "species": "aves",
+      "feed": {
+        "name": "Amendoim, farelo",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 1.63,
+        "em": 2228,
+        "pb": 48.2,
+        "fb": 6.88,
+        "lis": 1.16,
+        "met": 0.9,
+        "ca": 0.2,
+        "pd": 0.21,
+        "na": 0.05
+      }
+    },
+    {
+      "id": "suinos-4c2474001773c932b22e",
+      "species": "suinos",
+      "feed": {
+        "name": "Amendoim, farelo",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 1.63,
+        "em": 3455,
+        "pb": 48.2,
+        "fb": 6.88,
+        "lis": 1.18,
+        "met": 0.9,
+        "ca": 0.2,
+        "pd": 0.21,
+        "na": 0.05
+      }
+    },
+    {
+      "id": "aves-49033428717175ee4ed1",
+      "species": "aves",
+      "feed": {
+        "name": "Aveia, grão",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 1.4,
+        "em": 2976,
+        "pb": 12.6,
+        "fb": 3.73,
+        "lis": 0.45,
+        "met": 0.51,
+        "ca": 0.07,
+        "pd": 0.41,
+        "na": 0.01
+      }
+    },
+    {
+      "id": "suinos-3233acebca7abd80a596",
+      "species": "suinos",
+      "feed": {
+        "name": "Aveia, grão",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 1.4,
+        "em": 2645,
+        "pb": 12.6,
+        "fb": 3.73,
+        "lis": 0.39,
+        "met": 0.47,
+        "ca": 0.07,
+        "pd": 0.41,
+        "na": 0.01
+      }
+    },
+    {
+      "id": "aves-421260ae20cd80032dbd",
+      "species": "aves",
+      "feed": {
+        "name": "Calcário calcítico",
+        "tipo": "Mineral",
+        "ms": 100,
+        "custoKg": 1.17,
+        "ca": 37.5
+      }
+    },
+    {
+      "id": "suinos-dff10d744812b7fb170f",
+      "species": "suinos",
+      "feed": {
+        "name": "Calcário calcítico",
+        "tipo": "Mineral",
+        "ms": 100,
+        "custoKg": 1.17,
+        "ca": 37.5
+      }
+    },
+    {
+      "id": "aves-c3181fa712751a9c1b1c",
+      "species": "aves",
+      "feed": {
+        "name": "Canola, farelo",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 0.85,
+        "em": 1743,
+        "pb": 36.2,
+        "fb": 10.9,
+        "lis": 1.63,
+        "met": 1.42,
+        "ca": 0.63,
+        "pd": 0.39,
+        "na": 0.1
+      }
+    },
+    {
+      "id": "suinos-1507311199cb14d42693",
+      "species": "suinos",
+      "feed": {
+        "name": "Canola, farelo",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 0.85,
+        "em": 2746,
+        "pb": 36.2,
+        "fb": 10.9,
+        "lis": 1.54,
+        "met": 1.43,
+        "ca": 0.63,
+        "pd": 0.39,
+        "na": 0.1
+      }
+    },
+    {
+      "id": "aves-10e3e29ff45e5f5df670",
+      "species": "aves",
+      "feed": {
+        "name": "Carbonato de cálcio",
+        "tipo": "Mineral",
+        "ms": 100,
+        "custoKg": 0.65,
+        "ca": 43.3
+      }
+    },
+    {
+      "id": "suinos-eec7f79a8fbe2bc61ac3",
+      "species": "suinos",
+      "feed": {
+        "name": "Carbonato de cálcio",
+        "tipo": "Mineral",
+        "ms": 100,
+        "custoKg": 0.65,
+        "ca": 43.3
+      }
+    },
+    {
+      "id": "aves-f5b2986f89bb6ac81034",
+      "species": "aves",
+      "feed": {
+        "name": "DL-metionina",
+        "tipo": "Aminoácido",
+        "ms": 100,
+        "custoKg": 30.84,
+        "pb": 58.67,
+        "met": 98
+      }
+    },
+    {
+      "id": "suinos-3cbf14eff456e982e455",
+      "species": "suinos",
+      "feed": {
+        "name": "DL-metionina",
+        "tipo": "Aminoácido",
+        "ms": 100,
+        "custoKg": 30.84,
+        "em": 5477,
+        "pb": 58.67,
+        "met": 98
+      }
+    },
+    {
+      "id": "aves-49c92c186b2b1e5803d4",
+      "species": "aves",
+      "feed": {
+        "name": "Fosfato bicálcico",
+        "tipo": "Mineral",
+        "ms": 100,
+        "custoKg": 6.99,
+        "ca": 24.5,
+        "pd": 18.5
+      }
+    },
+    {
+      "id": "suinos-309fa7f66fb0b8cfa412",
+      "species": "suinos",
+      "feed": {
+        "name": "Fosfato bicálcico",
+        "tipo": "Mineral",
+        "ms": 100,
+        "custoKg": 6.99,
+        "ca": 24.5,
+        "pd": 18.5
+      }
+    },
+    {
+      "id": "aves-3cefe72c89d7745b0927",
+      "species": "aves",
+      "feed": {
+        "name": "Girassol, farelo",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 1.2,
+        "em": 1795,
+        "pb": 33,
+        "fb": 25.8,
+        "lis": 0.94,
+        "met": 1.08,
+        "ca": 0.35,
+        "pd": 0.32,
+        "na": 0.02
+      }
+    },
+    {
+      "id": "suinos-22049c1feb9e603da6cc",
+      "species": "suinos",
+      "feed": {
+        "name": "Girassol, farelo",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 1.2,
+        "em": 1951,
+        "pb": 33,
+        "fb": 25.8,
+        "lis": 0.9,
+        "met": 1.08,
+        "ca": 0.35,
+        "pd": 0.32,
+        "na": 0.02
+      }
+    },
+    {
+      "id": "aves-9cc2943005091de2559a",
+      "species": "aves",
+      "feed": {
+        "name": "L-HCl-lisina",
+        "tipo": "Aminoácido",
+        "ms": 100,
+        "custoKg": 16.64,
+        "em": 4327,
+        "pb": 85.81,
+        "lis": 78
+      }
+    },
+    {
+      "id": "suinos-23b547e7164014f82c8a",
+      "species": "suinos",
+      "feed": {
+        "name": "L-HCl-lisina",
+        "tipo": "Aminoácido",
+        "ms": 100,
+        "custoKg": 16.64,
+        "em": 4546,
+        "pb": 85.81,
+        "lis": 78
+      }
+    },
+    {
+      "id": "aves-73d1d7062700421a61de",
+      "species": "aves",
+      "feed": {
+        "name": "Milheto, grão",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 2.3,
+        "em": 3189,
+        "pb": 11.6,
+        "fb": 2.36,
+        "lis": 0.31,
+        "met": 0.51,
+        "ca": 0.04,
+        "pd": 0.08,
+        "na": 0.01
+      }
+    },
+    {
+      "id": "suinos-1b70b52059898664b622",
+      "species": "suinos",
+      "feed": {
+        "name": "Milheto, grão",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 2.3,
+        "em": 3159,
+        "pb": 11.6,
+        "fb": 2.36,
+        "lis": 0.28,
+        "met": 0.49,
+        "ca": 0.04,
+        "pd": 0.08,
+        "na": 0.01
+      }
+    },
+    {
+      "id": "aves-27f40a4eac99c6b89d60",
+      "species": "aves",
+      "feed": {
+        "name": "Milho, grão (média)",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 1.22,
+        "em": 3364,
+        "pb": 7.81,
+        "fb": 1.72,
+        "lis": 0.21,
+        "met": 0.29,
+        "ca": 0.02,
+        "pd": 0.05,
+        "na": 0.01
+      }
+    },
+    {
+      "id": "suinos-218c4ff45747792a0bd5",
+      "species": "suinos",
+      "feed": {
+        "name": "Milho, grão (média)",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 1.22,
+        "em": 3360,
+        "pb": 7.81,
+        "fb": 1.72,
+        "lis": 0.2,
+        "met": 0.29,
+        "ca": 0.02,
+        "pd": 0.05,
+        "na": 0.01
+      }
+    },
+    {
+      "id": "aves-a6fbf4c416cab048632c",
+      "species": "aves",
+      "feed": {
+        "name": "Sal comum",
+        "tipo": "Mineral",
+        "ms": 100,
+        "custoKg": 0.72,
+        "na": 39.7
+      }
+    },
+    {
+      "id": "suinos-bc3d1cf469ebae1bab65",
+      "species": "suinos",
+      "feed": {
+        "name": "Sal comum",
+        "tipo": "Mineral",
+        "ms": 100,
+        "custoKg": 0.72,
+        "na": 39.7
+      }
+    },
+    {
+      "id": "aves-1fb286ea00062f437aa5",
+      "species": "aves",
+      "feed": {
+        "name": "Soja, farelo 45,6% PB (média)",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 2.5,
+        "em": 2258,
+        "pb": 45.6,
+        "fb": 4.82,
+        "lis": 2.6,
+        "met": 1.11,
+        "ca": 0.3,
+        "pd": 0.22,
+        "na": 0.01
+      }
+    },
+    {
+      "id": "suinos-4e23d658f6c11f631cbd",
+      "species": "suinos",
+      "feed": {
+        "name": "Soja, farelo 45,6% PB (média)",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 2.5,
+        "em": 3179,
+        "pb": 45.6,
+        "fb": 4.82,
+        "lis": 2.59,
+        "met": 1.15,
+        "ca": 0.3,
+        "pd": 0.22,
+        "na": 0.01
+      }
+    },
+    {
+      "id": "aves-109e72b43467bd577c6c",
+      "species": "aves",
+      "feed": {
+        "name": "Soja, óleo degomado",
+        "tipo": "Óleo",
+        "ms": 100,
+        "custoKg": 5.3,
+        "em": 8790
+      }
+    },
+    {
+      "id": "suinos-20307fbd27346cad94f4",
+      "species": "suinos",
+      "feed": {
+        "name": "Soja, óleo degomado",
+        "tipo": "Óleo",
+        "ms": 100,
+        "custoKg": 5.3,
+        "em": 8300
+      }
+    },
+    {
+      "id": "aves-969657f784184a9c8a07",
+      "species": "aves",
+      "feed": {
+        "name": "Sorgo, grão",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 1.05,
+        "em": 3204,
+        "pb": 8.65,
+        "fb": 2.58,
+        "lis": 0.18,
+        "met": 0.27,
+        "ca": 0.03,
+        "pd": 0.07,
+        "na": 0.02
+      }
+    },
+    {
+      "id": "suinos-5c725233032b2e2a1552",
+      "species": "suinos",
+      "feed": {
+        "name": "Sorgo, grão",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 1.05,
+        "em": 3410,
+        "pb": 8.65,
+        "fb": 2.58,
+        "lis": 0.16,
+        "met": 0.26,
+        "ca": 0.03,
+        "pd": 0.07,
+        "na": 0.02
+      }
+    },
+    {
+      "id": "aves-efc9193efa0680898ea9",
+      "species": "aves",
+      "feed": {
+        "name": "Superfosfato simples",
+        "tipo": "Mineral",
+        "ms": 100,
+        "custoKg": 1.9,
+        "pd": 17.6
+      }
+    },
+    {
+      "id": "suinos-c1447f5736590cedab9a",
+      "species": "suinos",
+      "feed": {
+        "name": "Superfosfato simples",
+        "tipo": "Mineral",
+        "ms": 100,
+        "custoKg": 1.9,
+        "pd": 17.6
+      }
+    },
+    {
+      "id": "aves-04e73899cf2c33a9d643",
+      "species": "aves",
+      "feed": {
+        "name": "Superfosfato triplo",
+        "tipo": "Mineral",
+        "ms": 100,
+        "custoKg": 4.1,
+        "pd": 20.4
+      }
+    },
+    {
+      "id": "suinos-9fd2c30e817918ad9d46",
+      "species": "suinos",
+      "feed": {
+        "name": "Superfosfato triplo",
+        "tipo": "Mineral",
+        "ms": 100,
+        "custoKg": 4.1,
+        "pd": 20.4
+      }
+    },
+    {
+      "id": "aves-f9da2f6810e13e62ad06",
+      "species": "aves",
+      "feed": {
+        "name": "Trigo, farelo",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 1.3,
+        "em": 1810,
+        "pb": 15.2,
+        "fb": 9.07,
+        "lis": 0.44,
+        "met": 0.42,
+        "ca": 0.14,
+        "pd": 0.49,
+        "na": 0.02
+      }
+    },
+    {
+      "id": "suinos-9b85ed731b17fd8236f8",
+      "species": "suinos",
+      "feed": {
+        "name": "Trigo, farelo",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 1.3,
+        "em": 2370,
+        "pb": 15.2,
+        "fb": 9.07,
+        "lis": 0.43,
+        "met": 0.41,
+        "ca": 0.14,
+        "pd": 0.49,
+        "na": 0.02
+      }
+    },
+    {
+      "id": "aves-9f094d4447e793c24c99",
+      "species": "aves",
+      "feed": {
+        "name": "Trigo, farinha",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 0.55,
+        "em": 3503,
+        "pb": 11.7,
+        "fb": 0.11,
+        "lis": 0.28,
+        "met": 0.46,
+        "ca": 0.04,
+        "pd": 0.02,
+        "na": 0.01
+      }
+    },
+    {
+      "id": "suinos-33b068d063ef21ec329d",
+      "species": "suinos",
+      "feed": {
+        "name": "Trigo, farinha",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 0.55,
+        "em": 3388,
+        "pb": 11.7,
+        "fb": 0.11,
+        "lis": 0.28,
+        "met": 0.45,
+        "ca": 0.04,
+        "pd": 0.02,
+        "na": 0.01
+      }
+    },
+    {
+      "id": "aves-aac287dc03f6b8932364",
+      "species": "aves",
+      "feed": {
+        "name": "Trigo, grão",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 1.01,
+        "em": 3039,
+        "pb": 13.6,
+        "fb": 2.08,
+        "lis": 0.29,
+        "met": 0.43,
+        "ca": 0.05,
+        "pd": 0.3,
+        "na": 0.01
+      }
+    },
+    {
+      "id": "suinos-2f0cbf3cd4a3f0a2b7a8",
+      "species": "suinos",
+      "feed": {
+        "name": "Trigo, grão",
+        "tipo": "Concentrado",
+        "ms": 100,
+        "custoKg": 1.01,
+        "em": 3243,
+        "pb": 13.6,
+        "fb": 2.08,
+        "lis": 0.29,
+        "met": 0.43,
+        "ca": 0.05,
+        "pd": 0.3,
+        "na": 0.01
       }
     }
   ]
